@@ -162,13 +162,17 @@ header{background:var(--black2);padding:0;position:sticky;top:0;z-index:100;bord
 .slide-counter{position:absolute;bottom:1.25rem;left:50%;transform:translateX(-50%);font-family:'Barlow Condensed',sans-serif;font-size:0.72rem;font-weight:600;color:var(--text-dim);letter-spacing:0.14em;text-transform:uppercase}
 
 /* THUMBS */
-.thumbs-bar{flex-shrink:0;padding:0.875rem 2rem 1.25rem;border-top:1px solid var(--border);display:none}
+.thumbs-bar{flex-shrink:0;padding:0.875rem 2rem 1rem;border-top:1px solid var(--border);display:none}
 .thumbs-scroll{display:flex;gap:4px;overflow-x:auto;scrollbar-width:thin;scrollbar-color:rgba(34,197,94,0.2) transparent}
 .thumbs-scroll::-webkit-scrollbar{height:2px}
 .thumbs-scroll::-webkit-scrollbar-thumb{background:rgba(34,197,94,0.2)}
-.thumb-img{width:68px;height:48px;object-fit:cover;cursor:pointer;opacity:0.3;border:2px solid transparent;transition:all 0.2s;flex-shrink:0}
+.thumb-img{width:68px;height:48px;object-fit:cover;cursor:grab;opacity:0.3;border:2px solid transparent;transition:opacity 0.2s,border-color 0.2s,transform 0.15s;flex-shrink:0;user-select:none}
 .thumb-img.active{opacity:1;border-color:var(--green-accent)}
 .thumb-img:hover:not(.active){opacity:0.65}
+.thumb-img.dragging{opacity:0.2;transform:scale(0.9);cursor:grabbing}
+.thumb-img.drag-over{border-color:var(--green-accent);opacity:0.9;transform:scale(1.06)}
+.thumbs-hint{font-family:'Barlow Condensed',sans-serif;font-size:0.58rem;letter-spacing:0.14em;text-transform:uppercase;color:var(--text-dim);margin-top:6px;display:none}
+.thumbs-hint.visible{display:block}
 
 /* ── LOGIN MODAL ── */
 #loginModal{display:none;position:fixed;inset:0;background:rgba(4,7,4,0.95);z-index:600;align-items:center;justify-content:center}
@@ -282,11 +286,7 @@ header{background:var(--black2);padding:0;position:sticky;top:0;z-index:100;bord
       <h1>Cada detalhe,<br><em>cada sonho</em><br>realizado.</h1>
       <p>Acompanhe o registro fotográfico das nossas obras. Cada ambiente, cada acabamento — documentado com cuidado para você.</p>
     </div>
-    <div class="hero-stats" id="heroStats">
-      <div class="stat"><span class="stat-num" id="statObras">0</span><span class="stat-label">Obras</span></div>
-      <div class="stat"><span class="stat-num" id="statFotos">0</span><span class="stat-label">Fotos</span></div>
-      <div class="stat"><span class="stat-num" id="statEntregues">0</span><span class="stat-label">Catalogadas</span></div>
-    </div>
+
   </div>
 </div>
 
@@ -301,7 +301,7 @@ header{background:var(--black2);padding:0;position:sticky;top:0;z-index:100;bord
   </div>
   <div class="search-wrap">
     <span class="search-icon">🔍</span>
-    <input class="search-input" id="searchInput" placeholder="Buscar cliente..." type="text" oninput="renderGrid()">
+    <input class="search-input" id="searchInput" placeholder="Buscar cliente..." type="text" autocomplete="off" autocorrect="off" spellcheck="false" oninput="renderGrid()">
   </div>
 </div>
 
@@ -337,6 +337,7 @@ header{background:var(--black2);padding:0;position:sticky;top:0;z-index:100;bord
   </div>
   <div class="thumbs-bar" id="thumbsBar">
     <div class="thumbs-scroll" id="thumbsScroll"></div>
+    <div class="thumbs-hint" id="thumbsHint">arraste para reordenar</div>
   </div>
 </div>
 
@@ -440,7 +441,14 @@ async function init() {
 async function loadObras() {
   const { data, error } = await db.from('obras').select('*, rooms(*, photos(*))').order('created_at', { ascending: false });
   if (error) { console.error(error); showToast('Erro ao carregar obras'); return; }
-  obras = data || [];
+  // sort photos by order within each room
+  obras = (data || []).map(o => ({
+    ...o,
+    rooms: (o.rooms || []).map(r => ({
+      ...r,
+      photos: (r.photos || []).sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+    }))
+  }));
   updateStats();
 }
 
@@ -562,6 +570,8 @@ function selectRoom(idx) {
   renderSlide();
 }
 
+let dragSrcIdx = null;
+
 function renderSlide() {
   const rooms = currentObra.rooms || [];
   const room = rooms[currentRoomIdx];
@@ -570,18 +580,82 @@ function renderSlide() {
   const empty = document.getElementById('slideEmpty');
   const thumbsBar = document.getElementById('thumbsBar');
   const counter = document.getElementById('slideCounter');
-  if (!photos.length) { img.style.display = 'none'; empty.style.display = 'flex'; thumbsBar.style.display = 'none'; counter.textContent = ''; return; }
+  const hint = document.getElementById('thumbsHint');
+
+  if (!photos.length) {
+    img.style.display = 'none'; empty.style.display = 'flex';
+    thumbsBar.style.display = 'none'; counter.textContent = ''; return;
+  }
+
   empty.style.display = 'none'; img.style.display = 'block';
   img.classList.add('fading');
   setTimeout(() => { img.src = photos[currentSlide].url; img.classList.remove('fading'); }, 180);
   counter.textContent = `${currentSlide + 1} / ${photos.length}`;
   thumbsBar.style.display = 'block';
-  document.getElementById('thumbsScroll').innerHTML = photos.map((p, i) =>
-    `<img class="thumb-img ${i === currentSlide ? 'active' : ''}" src="${p.url}" onclick="goSlide(${i})" alt="">`
+
+  if (hint) hint.classList.toggle('visible', isAdmin && photos.length > 1);
+
+  const scroll = document.getElementById('thumbsScroll');
+  scroll.innerHTML = photos.map((p, i) =>
+    `<img class="thumb-img ${i === currentSlide ? 'active' : ''}"
+      src="${p.url}"
+      data-idx="${i}"
+      data-photo-id="${p.id}"
+      draggable="${isAdmin ? 'true' : 'false'}"
+      onclick="goSlide(${i})"
+      alt="">`
   ).join('');
+
+  if (isAdmin) {
+    scroll.querySelectorAll('.thumb-img').forEach(el => {
+      el.addEventListener('dragstart', e => {
+        dragSrcIdx = parseInt(el.dataset.idx);
+        el.classList.add('dragging');
+        e.dataTransfer.effectAllowed = 'move';
+      });
+      el.addEventListener('dragend', () => {
+        el.classList.remove('dragging');
+        scroll.querySelectorAll('.thumb-img').forEach(x => x.classList.remove('drag-over'));
+      });
+      el.addEventListener('dragover', e => {
+        e.preventDefault(); e.dataTransfer.dropEffect = 'move';
+        scroll.querySelectorAll('.thumb-img').forEach(x => x.classList.remove('drag-over'));
+        el.classList.add('drag-over');
+      });
+      el.addEventListener('drop', async e => {
+        e.preventDefault();
+        const targetIdx = parseInt(el.dataset.idx);
+        if (dragSrcIdx === null || dragSrcIdx === targetIdx) return;
+        await reorderPhotos(dragSrcIdx, targetIdx);
+        dragSrcIdx = null;
+      });
+    });
+  }
 }
 
 function goSlide(i) { currentSlide = i; renderSlide(); }
+
+async function reorderPhotos(fromIdx, toIdx) {
+  const rooms = currentObra.rooms || [];
+  const room = rooms[currentRoomIdx];
+  if (!room) return;
+  const photos = [...(room.photos || [])];
+  const [moved] = photos.splice(fromIdx, 1);
+  photos.splice(toIdx, 0, moved);
+
+  // update order in DB
+  try {
+    for (let i = 0; i < photos.length; i++) {
+      await db.from('photos').update({ order: i }).eq('id', photos[i].id);
+    }
+    showToast('Ordem salva');
+  } catch(e) { console.error(e); showToast('Erro ao salvar ordem'); }
+
+  await loadObras();
+  currentObra = obras.find(o => o.id === currentObra.id);
+  currentSlide = toIdx;
+  renderRoomTabs(); renderSlide();
+}
 function navSlide(dir) {
   if (!currentObra) return;
   const rooms = currentObra.rooms || [];
