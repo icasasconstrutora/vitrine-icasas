@@ -102,11 +102,8 @@ header{background:var(--black2);padding:0;position:sticky;top:0;z-index:100;bord
 .card-overlay-cta{font-family:'Barlow Condensed',sans-serif;font-size:0.85rem;font-weight:700;letter-spacing:0.2em;text-transform:uppercase;color:var(--white);border:1.5px solid var(--green-accent);padding:10px 28px;transition:all 0.2s}
 .obra-card:hover .card-overlay-cta{background:var(--green-accent);color:var(--black)}
 
-/* STATUS TAGS */
-.status-tag{position:absolute;top:0.875rem;right:0.875rem;font-family:'Barlow Condensed',sans-serif;font-size:0.62rem;font-weight:700;letter-spacing:0.16em;text-transform:uppercase;padding:4px 10px}
-.status-andamento{background:rgba(136,136,136,0.2);color:rgba(255,255,255,0.6);border:1px solid rgba(255,255,255,0.1)}
-.status-concluida{background:rgba(201,169,110,0.15);color:#C9A96E;border:1px solid rgba(201,169,110,0.3)}
-.status-entregue{background:rgba(34,197,94,0.15);color:var(--green-accent);border:1px solid rgba(34,197,94,0.3)}
+/* SIZE TAG */
+.size-tag{position:absolute;top:0.875rem;right:0.875rem;font-family:'Barlow Condensed',sans-serif;font-size:0.72rem;font-weight:700;letter-spacing:0.16em;text-transform:uppercase;padding:4px 12px;background:rgba(34,197,94,0.15);color:var(--green-accent);border:1px solid rgba(34,197,94,0.3)}
 
 /* ADMIN ACTIONS */
 .card-admin-actions{position:absolute;top:0.75rem;left:0.75rem;display:none;flex-direction:column;gap:4px}
@@ -288,7 +285,7 @@ header{background:var(--black2);padding:0;position:sticky;top:0;z-index:100;bord
     <div class="hero-stats" id="heroStats">
       <div class="stat"><span class="stat-num" id="statObras">0</span><span class="stat-label">Obras</span></div>
       <div class="stat"><span class="stat-num" id="statFotos">0</span><span class="stat-label">Fotos</span></div>
-      <div class="stat"><span class="stat-num" id="statEntregues">0</span><span class="stat-label">Entregues</span></div>
+      <div class="stat"><span class="stat-num" id="statEntregues">0</span><span class="stat-label">Catalogadas</span></div>
     </div>
   </div>
 </div>
@@ -297,9 +294,10 @@ header{background:var(--black2);padding:0;position:sticky;top:0;z-index:100;bord
 <div class="filters-wrap">
   <div class="filter-pills" id="filterPills">
     <button class="pill active" data-filter="all">Todas</button>
-    <button class="pill" data-filter="Em andamento">Em andamento</button>
-    <button class="pill" data-filter="Concluída">Concluída</button>
-    <button class="pill" data-filter="Entregue">Entregue</button>
+    <button class="pill" data-filter="50m²">50m²</button>
+    <button class="pill" data-filter="55m²">55m²</button>
+    <button class="pill" data-filter="60m²">60m²</button>
+    <button class="pill" data-filter="70m²">70m²</button>
   </div>
   <div class="search-wrap">
     <span class="search-icon">🔍</span>
@@ -376,17 +374,15 @@ header{background:var(--black2);padding:0;position:sticky;top:0;z-index:100;bord
       <input class="form-input" id="fAddress" placeholder="ex: Rua das Aroeiras, 128">
     </div>
     <div class="form-field">
-      <label class="form-label">Status</label>
-      <select class="form-select" id="fStatus">
-        <option value="Em andamento">Em andamento</option>
-        <option value="Concluída">Concluída</option>
-        <option value="Entregue">Entregue</option>
+      <label class="form-label">Tamanho</label>
+      <select class="form-select" id="fSize">
+        <option value="">Selecione o tamanho</option>
+        <option value="50m²">50m²</option>
+        <option value="55m²">55m²</option>
+        <option value="60m²">60m²</option>
+        <option value="70m²">70m²</option>
       </select>
     </div>
-    <div class="divider"></div>
-    <span class="rooms-section-label">Cômodos da obra</span>
-    <div class="rooms-list" id="formRoomsList"></div>
-    <button class="btn-add-room" onclick="addRoomRow()">+ Adicionar cômodo</button>
     <div class="form-actions">
       <button class="btn-form-cancel" onclick="closeObraModal()">Cancelar</button>
       <button class="btn-form-save" id="btnFormSave" onclick="saveObra()">Salvar obra</button>
@@ -486,10 +482,9 @@ async function uploadPhoto(obraId, roomId, file) {
 // ══════════════════════════════
 function updateStats() {
   const totalFotos = obras.reduce((a, o) => a + (o.rooms || []).reduce((b, r) => b + (r.photos || []).length, 0), 0);
-  const entregues = obras.filter(o => o.status === 'Entregue').length;
   document.getElementById('statObras').textContent = obras.length;
   document.getElementById('statFotos').textContent = totalFotos;
-  document.getElementById('statEntregues').textContent = entregues;
+  document.getElementById('statEntregues').textContent = obras.filter(o => o.size).length;
 }
 
 // ══════════════════════════════
@@ -499,7 +494,7 @@ function renderGrid() {
   const grid = document.getElementById('obrasGrid');
   const q = document.getElementById('searchInput').value.toLowerCase();
   let list = obras;
-  if (currentFilter !== 'all') list = list.filter(o => o.status === currentFilter);
+  if (currentFilter !== 'all') list = list.filter(o => o.size === currentFilter);
   if (q) list = list.filter(o => o.client_name.toLowerCase().includes(q) || (o.address || '').toLowerCase().includes(q));
 
   let html = '';
@@ -512,23 +507,21 @@ function renderGrid() {
       const rooms = obra.rooms || [];
       const totalPhotos = rooms.reduce((a, r) => a + (r.photos || []).length, 0);
       const coverUrl = rooms.length > 0 && rooms[0].photos && rooms[0].photos.length > 0 ? rooms[0].photos[0].url : null;
-      const statusClass = { 'Em andamento': 'status-andamento', 'Concluída': 'status-concluida', 'Entregue': 'status-entregue' }[obra.status] || 'status-andamento';
       const coverHtml = coverUrl
         ? `<img class="card-cover" src="${coverUrl}" alt="${obra.client_name}" loading="lazy">`
-        : `<div class="card-no-photo"><div class="no-photo-icon">🏠</div><div class="no-photo-label">${rooms.length} cômodo${rooms.length !== 1 ? 's' : ''}</div></div>`;
+        : `<div class="card-no-photo"><div class="no-photo-icon">🏠</div><div class="no-photo-label">${totalPhotos} foto${totalPhotos !== 1 ? 's' : ''}</div></div>`;
 
       html += `<div class="obra-card" onclick="openSlideshow('${obra.id}')">
         ${coverHtml}
         <div class="card-bottom">
           <div class="card-client">${obra.client_name}</div>
           <div class="card-meta">
-            <span class="card-rooms">${rooms.length} cômodo${rooms.length !== 1 ? 's' : ''}</span>
-            <span class="card-sep"></span>
+            ${obra.address ? `<span class="card-rooms">${obra.address}</span><span class="card-sep"></span>` : ''}
             <span class="card-photos-count">${totalPhotos} foto${totalPhotos !== 1 ? 's' : ''}</span>
           </div>
         </div>
         <div class="card-overlay"><div class="card-overlay-cta">Ver fotos</div></div>
-        <div class="status-tag ${statusClass}">${obra.status}</div>
+        ${obra.size ? `<div class="size-tag">${obra.size}</div>` : ''}
         <div class="card-admin-actions ${isAdmin ? 'visible' : ''}">
           <button class="btn-card-edit" onclick="event.stopPropagation();openEditObra('${obra.id}')">✎ Editar</button>
           <button class="btn-card-delete" onclick="event.stopPropagation();confirmDeleteObra('${obra.id}')">✕ Excluir</button>
@@ -654,49 +647,42 @@ function updateAdminUI() {
 // OBRA FORM
 // ══════════════════════════════
 function openNewObra() {
-  editingObraId = null; tempRooms = ['Sala', 'Cozinha', 'Quarto'];
+  editingObraId = null;
   document.getElementById('obraModalTitle').textContent = 'Nova obra';
   document.getElementById('obraModalSub').textContent = 'Preencha os dados';
-  document.getElementById('fClient').value = ''; document.getElementById('fAddress').value = '';
-  document.getElementById('fStatus').value = 'Em andamento';
-  renderFormRooms(); document.getElementById('obraModal').classList.add('open');
+  document.getElementById('fClient').value = '';
+  document.getElementById('fAddress').value = '';
+  document.getElementById('fSize').value = '';
+  document.getElementById('obraModal').classList.add('open');
 }
 function openEditObra(obraId) {
   const obra = obras.find(o => o.id === obraId); if (!obra) return;
-  editingObraId = obraId; tempRooms = (obra.rooms || []).map(r => r.name);
+  editingObraId = obraId;
   document.getElementById('obraModalTitle').textContent = 'Editar obra';
   document.getElementById('obraModalSub').textContent = obra.client_name;
   document.getElementById('fClient').value = obra.client_name;
   document.getElementById('fAddress').value = obra.address || '';
-  document.getElementById('fStatus').value = obra.status;
-  renderFormRooms(); document.getElementById('obraModal').classList.add('open');
+  document.getElementById('fSize').value = obra.size || '';
+  document.getElementById('obraModal').classList.add('open');
 }
 function closeObraModal() { document.getElementById('obraModal').classList.remove('open'); }
-function renderFormRooms() {
-  document.getElementById('formRoomsList').innerHTML = tempRooms.map((r, i) =>
-    `<div class="room-row"><input class="form-input" value="${r}" placeholder="Nome do cômodo" oninput="tempRooms[${i}]=this.value"><button class="btn-rm-room" onclick="removeRoomRow(${i})">✕</button></div>`
-  ).join('');
-}
-function addRoomRow() { tempRooms.push(''); renderFormRooms(); }
-function removeRoomRow(i) { tempRooms.splice(i, 1); renderFormRooms(); }
 
 async function saveObra() {
   const clientName = document.getElementById('fClient').value.trim();
   if (!clientName) { showToast('Informe o nome dos clientes'); return; }
-  document.querySelectorAll('#formRoomsList .form-input').forEach((el, i) => { tempRooms[i] = el.value.trim(); });
-  const roomNames = tempRooms.filter(r => r);
   const btn = document.getElementById('btnFormSave');
   btn.disabled = true; btn.textContent = 'Salvando...';
   try {
+    const payload = {
+      client_name: clientName,
+      address: document.getElementById('fAddress').value.trim(),
+      size: document.getElementById('fSize').value || null
+    };
     if (editingObraId) {
-      await updateObraRecord(editingObraId, { client_name: clientName, address: document.getElementById('fAddress').value.trim(), status: document.getElementById('fStatus').value });
-      const existing = obras.find(o => o.id === editingObraId);
-      const existingNames = (existing.rooms || []).map(r => r.name);
-      for (const name of roomNames) if (!existingNames.includes(name)) await createRoom(editingObraId, name);
+      await updateObraRecord(editingObraId, payload);
       showToast('Obra atualizada');
     } else {
-      const obra = await createObra({ client_name: clientName, address: document.getElementById('fAddress').value.trim(), status: document.getElementById('fStatus').value });
-      for (const name of roomNames) await createRoom(obra.id, name);
+      await createObra(payload);
       showToast('Obra criada com sucesso');
     }
     closeObraModal(); await loadObras(); renderGrid();
