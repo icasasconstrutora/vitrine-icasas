@@ -540,10 +540,11 @@ function openSlideshow(obraId) {
   if (!currentObra) return;
   currentRoomIdx = 0; currentSlide = 0;
   document.getElementById('modalClientName').textContent = currentObra.client_name;
-  document.getElementById('modalMetaLine').textContent = [currentObra.address, currentObra.status].filter(Boolean).join(' · ');
+  document.getElementById('modalMetaLine').textContent = [currentObra.address, currentObra.size].filter(Boolean).join(' · ');
   document.getElementById('btnAddPhotos').classList.toggle('visible', isAdmin);
   renderRoomTabs();
-  if (currentObra.rooms && currentObra.rooms.length > 0) selectRoom(0); else renderSlide();
+  const rooms = currentObra.rooms || [];
+  if (rooms.length > 0) selectRoom(0); else renderSlide();
   document.getElementById('slideshowModal').classList.add('open');
   document.body.style.overflow = 'hidden';
 }
@@ -583,7 +584,8 @@ function renderSlide() {
 function goSlide(i) { currentSlide = i; renderSlide(); }
 function navSlide(dir) {
   if (!currentObra) return;
-  const photos = (currentObra.rooms[currentRoomIdx]?.photos) || [];
+  const rooms = currentObra.rooms || [];
+  const photos = (rooms[currentRoomIdx]?.photos) || [];
   if (!photos.length) return;
   currentSlide = (currentSlide + dir + photos.length) % photos.length;
   renderSlide();
@@ -594,13 +596,25 @@ function closeSlideshow() { document.getElementById('slideshowModal').classList.
 // PHOTO UPLOAD
 // ══════════════════════════════
 function triggerPhotoUpload() {
-  if (!currentObra || !currentObra.rooms || !currentObra.rooms.length) { showToast('Adicione cômodos à obra primeiro'); return; }
+  if (!currentObra) return;
   document.getElementById('photoFileInput').click();
+}
+
+async function ensureRoom(obraId) {
+  const obra = obras.find(o => o.id === obraId);
+  if (obra && obra.rooms && obra.rooms.length > 0) return obra.rooms[currentRoomIdx] || obra.rooms[0];
+  const { data, error } = await db.from('rooms').insert([{ obra_id: obraId, name: 'Fotos', order: 0 }]).select().single();
+  if (error) throw error;
+  await loadObras();
+  currentObra = obras.find(o => o.id === obraId);
+  renderRoomTabs();
+  return data;
 }
 
 async function handlePhotoUpload(files) {
   if (!files.length) return;
-  const room = currentObra.rooms[currentRoomIdx];
+  let room;
+  try { room = await ensureRoom(currentObra.id); } catch(e) { showToast('Erro ao preparar cômodo'); return; }
   if (!room) return;
   const arr = Array.from(files);
   const prog = document.getElementById('uploadProgress');
