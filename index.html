@@ -160,18 +160,36 @@ header{background:var(--black2);padding:0;position:sticky;top:0;z-index:100;bord
 .btn-slide-prev{left:1.5rem}
 .btn-slide-next{right:1.5rem}
 .slide-counter{position:absolute;bottom:1.25rem;left:50%;transform:translateX(-50%);font-family:'Barlow Condensed',sans-serif;font-size:0.72rem;font-weight:600;color:var(--text-dim);letter-spacing:0.14em;text-transform:uppercase}
+.btn-zoom{position:absolute;bottom:1.25rem;right:1.5rem;background:rgba(0,0,0,0.5);border:1px solid var(--border);color:var(--text-muted);width:34px;height:34px;cursor:pointer;font-size:0.9rem;display:flex;align-items:center;justify-content:center;transition:all 0.2s;z-index:10;backdrop-filter:blur(4px)}
+.btn-zoom:hover{border-color:var(--green-accent);color:var(--green-accent)}
+#slideImg{cursor:zoom-in}
+
+/* FULLSCREEN ZOOM */
+#zoomOverlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.97);z-index:2000;align-items:center;justify-content:center;cursor:zoom-out}
+#zoomOverlay.open{display:flex}
+#zoomImg{max-width:95vw;max-height:95vh;object-fit:contain;user-select:none}
+.btn-zoom-close{position:fixed;top:1.25rem;right:1.25rem;background:rgba(0,0,0,0.6);border:1px solid rgba(255,255,255,0.15);color:rgba(255,255,255,0.6);width:38px;height:38px;cursor:pointer;font-size:1rem;display:flex;align-items:center;justify-content:center;z-index:2001;transition:all 0.2s}
+.btn-zoom-close:hover{border-color:var(--green-accent);color:var(--green-accent)}
+.btn-zoom-prev,.btn-zoom-next{position:fixed;top:50%;transform:translateY(-50%);background:rgba(0,0,0,0.5);border:1px solid rgba(255,255,255,0.1);color:rgba(255,255,255,0.5);width:46px;height:46px;cursor:pointer;font-size:1.2rem;display:flex;align-items:center;justify-content:center;z-index:2001;transition:all 0.2s}
+.btn-zoom-prev{left:1rem}
+.btn-zoom-next{right:1rem}
+.btn-zoom-prev:hover,.btn-zoom-next:hover{border-color:var(--green-accent);color:var(--green-accent)}
+.zoom-counter{position:fixed;bottom:1.5rem;left:50%;transform:translateX(-50%);font-family:'Barlow Condensed',sans-serif;font-size:0.72rem;font-weight:600;color:rgba(255,255,255,0.3);letter-spacing:0.14em;text-transform:uppercase;z-index:2001}
 
 /* THUMBS */
-.thumbs-bar{flex-shrink:0;padding:0.875rem 2rem 1rem;border-top:1px solid var(--border);display:none}
-.thumbs-scroll{display:flex;gap:4px;overflow-x:auto;scrollbar-width:thin;scrollbar-color:rgba(34,197,94,0.2) transparent}
+.thumbs-bar{flex-shrink:0;padding:0.75rem 2rem 0.75rem;border-top:1px solid var(--border);display:none}
+.thumbs-scroll{display:flex;gap:4px;overflow-x:auto;scrollbar-width:thin;scrollbar-color:rgba(34,197,94,0.2) transparent;padding-bottom:4px}
 .thumbs-scroll::-webkit-scrollbar{height:2px}
 .thumbs-scroll::-webkit-scrollbar-thumb{background:rgba(34,197,94,0.2)}
-.thumb-img{width:68px;height:48px;object-fit:cover;cursor:grab;opacity:0.3;border:2px solid transparent;transition:opacity 0.2s,border-color 0.2s,transform 0.15s;flex-shrink:0;user-select:none}
+.thumb-wrap{position:relative;flex-shrink:0}
+.thumb-img{width:68px;height:48px;object-fit:cover;cursor:pointer;opacity:0.3;border:2px solid transparent;transition:opacity 0.2s,border-color 0.2s;display:block}
 .thumb-img.active{opacity:1;border-color:var(--green-accent)}
 .thumb-img:hover:not(.active){opacity:0.65}
-.thumb-img.dragging{opacity:0.2;transform:scale(0.9);cursor:grabbing}
-.thumb-img.drag-over{border-color:var(--green-accent);opacity:0.9;transform:scale(1.06)}
-.thumbs-hint{font-family:'Barlow Condensed',sans-serif;font-size:0.58rem;letter-spacing:0.14em;text-transform:uppercase;color:var(--text-dim);margin-top:6px;display:none}
+.thumb-order-btns{display:none;position:absolute;top:0;left:0;right:0;bottom:0;align-items:center;justify-content:space-between;padding:0 2px;background:rgba(0,0,0,0.55)}
+.thumb-wrap:hover .thumb-order-btns{display:flex}
+.btn-thumb-move{background:rgba(0,0,0,0.7);border:1px solid rgba(255,255,255,0.2);color:rgba(255,255,255,0.8);width:22px;height:22px;cursor:pointer;font-size:0.65rem;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all 0.15s;padding:0;line-height:1}
+.btn-thumb-move:hover{border-color:var(--green-accent);color:var(--green-accent)}
+.thumbs-hint{font-family:'Barlow Condensed',sans-serif;font-size:0.58rem;letter-spacing:0.14em;text-transform:uppercase;color:var(--text-dim);margin-top:5px;display:none}
 .thumbs-hint.visible{display:block}
 
 /* ── LOGIN MODAL ── */
@@ -303,7 +321,7 @@ header{background:var(--black2);padding:0;position:sticky;top:0;z-index:100;bord
   </div>
   <div class="search-wrap">
     <span class="search-icon">🔍</span>
-    <input class="search-input" id="searchInput" placeholder="Buscar cliente..." type="text" autocomplete="off" autocorrect="off" spellcheck="false" oninput="renderGrid()">
+    <input class="search-input" id="searchInput" placeholder="Buscar cliente..." type="text" name="search_vds_x9k" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" oninput="renderGrid()">
   </div>
 </div>
 
@@ -329,18 +347,28 @@ header{background:var(--black2);padding:0;position:sticky;top:0;z-index:100;bord
   <div class="room-tabs-bar" id="roomTabsBar"></div>
   <div class="slideshow-body">
     <button class="btn-slide-nav btn-slide-prev" onclick="navSlide(-1)">←</button>
-    <img id="slideImg" src="" alt="">
+    <img id="slideImg" src="" alt="" onclick="openZoom()">
     <div id="slideEmpty" class="slide-empty">
       <div class="slide-empty-icon">📷</div>
       <div class="slide-empty-txt">Nenhuma foto neste<br>cômodo ainda</div>
     </div>
     <button class="btn-slide-nav btn-slide-next" onclick="navSlide(1)">→</button>
     <div class="slide-counter" id="slideCounter"></div>
+    <button class="btn-zoom" onclick="openZoom()" title="Tela cheia">⤢</button>
   </div>
   <div class="thumbs-bar" id="thumbsBar">
     <div class="thumbs-scroll" id="thumbsScroll"></div>
-    <div class="thumbs-hint" id="thumbsHint">arraste para reordenar</div>
+    <div class="thumbs-hint" id="thumbsHint">← → para reordenar ao passar o mouse</div>
   </div>
+</div>
+
+<!-- ZOOM OVERLAY -->
+<div id="zoomOverlay" onclick="closeZoom()">
+  <button class="btn-zoom-close" onclick="closeZoom()">✕</button>
+  <button class="btn-zoom-prev" onclick="event.stopPropagation();zoomNav(-1)">←</button>
+  <img id="zoomImg" src="" alt="" onclick="event.stopPropagation()">
+  <button class="btn-zoom-next" onclick="event.stopPropagation();zoomNav(1)">→</button>
+  <div class="zoom-counter" id="zoomCounter"></div>
 </div>
 
 <!-- LOGIN MODAL -->
@@ -431,6 +459,7 @@ let editingObraId = null;
 let tempRooms = [];
 
 async function init() {
+  document.getElementById('searchInput').value = '';
   await loadObras();
   renderGrid();
   updateAdminUI();
@@ -616,45 +645,20 @@ function renderSlide() {
   setTimeout(() => { img.src = photos[currentSlide].url; img.classList.remove('fading'); }, 180);
   counter.textContent = `${currentSlide + 1} / ${photos.length}`;
   thumbsBar.style.display = 'block';
-
   if (hint) hint.classList.toggle('visible', isAdmin && photos.length > 1);
 
   const scroll = document.getElementById('thumbsScroll');
-  scroll.innerHTML = photos.map((p, i) =>
-    `<img class="thumb-img ${i === currentSlide ? 'active' : ''}"
-      src="${p.url}"
-      data-idx="${i}"
-      data-photo-id="${p.id}"
-      draggable="${isAdmin ? 'true' : 'false'}"
-      onclick="goSlide(${i})"
-      alt="">`
-  ).join('');
-
-  if (isAdmin) {
-    scroll.querySelectorAll('.thumb-img').forEach(el => {
-      el.addEventListener('dragstart', e => {
-        dragSrcIdx = parseInt(el.dataset.idx);
-        el.classList.add('dragging');
-        e.dataTransfer.effectAllowed = 'move';
-      });
-      el.addEventListener('dragend', () => {
-        el.classList.remove('dragging');
-        scroll.querySelectorAll('.thumb-img').forEach(x => x.classList.remove('drag-over'));
-      });
-      el.addEventListener('dragover', e => {
-        e.preventDefault(); e.dataTransfer.dropEffect = 'move';
-        scroll.querySelectorAll('.thumb-img').forEach(x => x.classList.remove('drag-over'));
-        el.classList.add('drag-over');
-      });
-      el.addEventListener('drop', async e => {
-        e.preventDefault();
-        const targetIdx = parseInt(el.dataset.idx);
-        if (dragSrcIdx === null || dragSrcIdx === targetIdx) return;
-        await reorderPhotos(dragSrcIdx, targetIdx);
-        dragSrcIdx = null;
-      });
-    });
-  }
+  scroll.innerHTML = photos.map((p, i) => {
+    const orderBtns = isAdmin && photos.length > 1 ? `
+      <div class="thumb-order-btns">
+        ${i > 0 ? `<button class="btn-thumb-move" onclick="event.stopPropagation();reorderPhotos(${i},${i-1})" title="Mover esquerda">←</button>` : '<span style="width:22px"></span>'}
+        ${i < photos.length-1 ? `<button class="btn-thumb-move" onclick="event.stopPropagation();reorderPhotos(${i},${i+1})" title="Mover direita">→</button>` : '<span style="width:22px"></span>'}
+      </div>` : '';
+    return `<div class="thumb-wrap">
+      <img class="thumb-img ${i === currentSlide ? 'active' : ''}" src="${p.url}" onclick="goSlide(${i})" alt="">
+      ${orderBtns}
+    </div>`;
+  }).join('');
 }
 
 function goSlide(i) { currentSlide = i; renderSlide(); }
@@ -666,20 +670,18 @@ async function reorderPhotos(fromIdx, toIdx) {
   const photos = [...(room.photos || [])];
   const [moved] = photos.splice(fromIdx, 1);
   photos.splice(toIdx, 0, moved);
-
-  // update order in DB
   try {
     for (let i = 0; i < photos.length; i++) {
       await db.from('photos').update({ order: i }).eq('id', photos[i].id);
     }
     showToast('Ordem salva');
   } catch(e) { console.error(e); showToast('Erro ao salvar ordem'); }
-
   await loadObras();
   currentObra = obras.find(o => o.id === currentObra.id);
   currentSlide = toIdx;
   renderRoomTabs(); renderSlide();
 }
+
 function navSlide(dir) {
   if (!currentObra) return;
   const rooms = currentObra.rooms || [];
@@ -689,6 +691,32 @@ function navSlide(dir) {
   renderSlide();
 }
 function closeSlideshow() { document.getElementById('slideshowModal').classList.remove('open'); document.body.style.overflow = ''; }
+
+// ══════════════════════════════
+// ZOOM / FULLSCREEN
+// ══════════════════════════════
+function openZoom() {
+  const rooms = currentObra?.rooms || [];
+  const room = rooms[currentRoomIdx];
+  const photos = room ? (room.photos || []) : [];
+  if (!photos.length) return;
+  document.getElementById('zoomImg').src = photos[currentSlide].url;
+  document.getElementById('zoomCounter').textContent = `${currentSlide + 1} / ${photos.length}`;
+  document.getElementById('zoomOverlay').classList.add('open');
+}
+
+function closeZoom() { document.getElementById('zoomOverlay').classList.remove('open'); }
+
+function zoomNav(dir) {
+  const rooms = currentObra?.rooms || [];
+  const room = rooms[currentRoomIdx];
+  const photos = room ? (room.photos || []) : [];
+  if (!photos.length) return;
+  currentSlide = (currentSlide + dir + photos.length) % photos.length;
+  document.getElementById('zoomImg').src = photos[currentSlide].url;
+  document.getElementById('zoomCounter').textContent = `${currentSlide + 1} / ${photos.length}`;
+  renderSlide();
+}
 
 // ══════════════════════════════
 // PHOTO UPLOAD
@@ -819,6 +847,12 @@ document.querySelectorAll('.pill').forEach(p => {
   });
 });
 document.addEventListener('keydown', e => {
+  if (document.getElementById('zoomOverlay').classList.contains('open')) {
+    if (e.key === 'ArrowLeft') zoomNav(-1);
+    if (e.key === 'ArrowRight') zoomNav(1);
+    if (e.key === 'Escape') closeZoom();
+    return;
+  }
   if (document.getElementById('slideshowModal').classList.contains('open')) {
     if (e.key === 'ArrowLeft') navSlide(-1);
     if (e.key === 'ArrowRight') navSlide(1);
