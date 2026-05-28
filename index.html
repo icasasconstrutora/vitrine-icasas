@@ -474,10 +474,35 @@ async function createRoom(obraId, name) {
   return data;
 }
 
+// Comprime a imagem antes de subir: max 1280px, JPEG 82%
+function compressImage(file) {
+  return new Promise((resolve) => {
+    const MAX = 1280;
+    const QUALITY = 0.82;
+    const reader = new FileReader();
+    reader.onload = ev => {
+      const img = new Image();
+      img.onload = () => {
+        let w = img.width, h = img.height;
+        if (w > MAX || h > MAX) {
+          if (w > h) { h = Math.round(h * MAX / w); w = MAX; }
+          else { w = Math.round(w * MAX / h); h = MAX; }
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        canvas.toBlob(blob => resolve(blob || file), 'image/jpeg', QUALITY);
+      };
+      img.src = ev.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
 async function uploadPhoto(obraId, roomId, file) {
-  const ext = file.name.split('.').pop();
-  const path = `${obraId}/${roomId}/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
-  const { error: upErr } = await db.storage.from(STORAGE_BUCKET).upload(path, file, { cacheControl: '3600' });
+  const compressed = await compressImage(file);
+  const path = `${obraId}/${roomId}/${Date.now()}_${Math.random().toString(36).slice(2)}.jpg`;
+  const { error: upErr } = await db.storage.from(STORAGE_BUCKET).upload(path, compressed, { cacheControl: '3600', contentType: 'image/jpeg' });
   if (upErr) throw upErr;
   const { data: { publicUrl } } = db.storage.from(STORAGE_BUCKET).getPublicUrl(path);
   const { error: dbErr } = await db.from('photos').insert([{ room_id: roomId, obra_id: obraId, url: publicUrl, storage_path: path }]);
