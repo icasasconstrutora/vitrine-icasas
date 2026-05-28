@@ -71,8 +71,8 @@ header{background:var(--black2);padding:0;position:sticky;top:0;z-index:100;bord
 
 /* ── FILTERS ── */
 .filters-wrap{max-width:1280px;margin:0 auto;padding:1.75rem 2.5rem 0;display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap}
-.filter-pills{display:flex;gap:0;border:1px solid var(--border)}
-.pill{background:transparent;border:none;border-right:1px solid var(--border);color:var(--text-muted);font-family:'Barlow Condensed',sans-serif;font-size:0.8rem;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;padding:8px 20px;cursor:pointer;transition:all 0.2s}
+.filter-pills{display:flex;gap:0;border:1px solid var(--border);flex-wrap:wrap}
+.pill{background:transparent;border:none;border-right:1px solid var(--border);border-bottom:1px solid var(--border);color:var(--text-muted);font-family:'Barlow Condensed',sans-serif;font-size:0.8rem;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;padding:8px 16px;cursor:pointer;transition:all 0.2s}
 .pill:last-child{border-right:none}
 .pill.active{background:var(--green);color:var(--white)}
 .pill:hover:not(.active){background:rgba(255,255,255,0.04);color:var(--white)}
@@ -273,7 +273,11 @@ header{background:var(--black2);padding:0;position:sticky;top:0;z-index:100;bord
 }
 @media(max-width:600px){
   .hero-stats{display:none}
-  .search-input{width:150px}
+  .filters-wrap{flex-direction:column;align-items:stretch;gap:0.75rem}
+  .filter-pills{width:100%}
+  .pill{flex:1;text-align:center;padding:8px 6px;font-size:0.72rem}
+  .search-wrap{width:100%}
+  .search-input{width:100%}
 }
 </style>
 </head>
@@ -335,7 +339,7 @@ header{background:var(--black2);padding:0;position:sticky;top:0;z-index:100;bord
   </div>
   <div class="search-wrap">
     <span class="search-icon">🔍</span>
-    <input class="search-input" id="searchInput" placeholder="Buscar cliente..." type="text" name="search_vds_x9k" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" oninput="renderGrid()">
+    <input class="search-input" id="searchInput" placeholder="Buscar cliente..." type="search" name="vds_srch_x9k2" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" oninput="renderGrid()">
   </div>
 </div>
 
@@ -481,6 +485,8 @@ let tempRooms = [];
 
 async function init() {
   document.getElementById('searchInput').value = '';
+  setTimeout(() => { document.getElementById('searchInput').value = ''; }, 100);
+  setTimeout(() => { document.getElementById('searchInput').value = ''; }, 500);
   await loadObras();
   renderGrid();
   updateAdminUI();
