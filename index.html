@@ -1532,11 +1532,14 @@ function tvShowCurrent() {
     iframe.src = `https://www.youtube.com/embed/${photo.youtube_id}?autoplay=1&rel=0&controls=0`;
     scheduleTVNext(15000);
   } else if (photo.type === 'video') {
+    console.log('TV: tentando reproduzir vídeo', photo.url);
     video.style.display = 'block';
     video.src = photo.url;
-    video.muted = true; // muted garante autoplay em qualquer browser/Smart TV
+    video.muted = true;
     video.load();
-    video.play().catch(() => {});
+    video.play()
+      .then(() => console.log('TV: vídeo tocando, display=', video.style.display, 'size=', video.offsetWidth, 'x', video.offsetHeight))
+      .catch(e => console.error('TV: erro no play', e));
     video.onended = () => tvNext();
     scheduleTVNext(60000);
   } else {
