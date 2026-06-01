@@ -427,14 +427,25 @@ header{background:var(--black2);padding:0;position:sticky;top:0;z-index:100;bord
     <button class="btn-slide-nav btn-slide-prev" onclick="navSlide(-1)">←</button>
     <img id="slideImg" src="" alt="" onclick="openZoom()">
     <video id="slideVideo" playsinline style="display:none;max-height:100%;max-width:100%;object-fit:contain;cursor:pointer" onclick="videoPlayPause()"></video>
-    <div id="videoBottomBar" style="display:none;position:absolute;bottom:1.5rem;left:50%;transform:translateX(-50%);display:none;align-items:center;gap:10px;background:rgba(0,0,0,0.55);padding:6px 14px;backdrop-filter:blur(6px)">
-      <button onclick="videoPlayPause()" id="btnVidPlay" style="background:transparent;border:none;color:white;cursor:pointer;font-size:1rem;display:flex;align-items:center;padding:0">▶</button>
-      <div id="vidProgBar" onclick="videoSeek(event)" style="width:120px;height:3px;background:rgba(255,255,255,0.2);cursor:pointer;position:relative;flex-shrink:0">
+    <div id="videoBottomBar" style="display:none;position:absolute;bottom:1.5rem;left:50%;transform:translateX(-50%);align-items:center;gap:10px;background:rgba(0,0,0,0.6);padding:7px 14px;backdrop-filter:blur(8px)">
+      <button onclick="videoPlayPause()" id="btnVidPlay" style="background:transparent;border:none;color:white;cursor:pointer;font-size:1rem;display:flex;align-items:center;padding:0;flex-shrink:0">▶</button>
+      <div id="vidProgBar" onclick="videoSeek(event)" style="width:140px;height:3px;background:rgba(255,255,255,0.2);cursor:pointer;position:relative;flex-shrink:0">
         <div id="vidProgFill" style="height:100%;background:var(--green-accent);width:0%;pointer-events:none"></div>
       </div>
-      <span id="vidTime" style="font-family:'Barlow Condensed',sans-serif;font-size:0.68rem;color:rgba(255,255,255,0.5);letter-spacing:0.04em;white-space:nowrap">0:00</span>
-      <button id="btnUnmute" onclick="unmuteVideo()" style="display:none;background:transparent;border:1px solid rgba(34,197,94,0.5);color:var(--green-accent);font-family:'Barlow Condensed',sans-serif;font-size:0.65rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;padding:3px 10px;cursor:pointer">🔊 Som</button>
-      <span id="videoMutedBadge" style="display:none;font-family:'Barlow Condensed',sans-serif;font-size:0.65rem;color:rgba(255,255,255,0.3);letter-spacing:0.1em">🔇</span>
+      <span id="vidTime" style="font-family:'Barlow Condensed',sans-serif;font-size:0.68rem;color:rgba(255,255,255,0.5);letter-spacing:0.04em;white-space:nowrap;flex-shrink:0">0:00</span>
+      <!-- volume control (shown when video has audio) -->
+      <div id="volumeWrap" style="display:none;position:relative;align-items:center;gap:6px">
+        <span id="btnVolIcon" style="cursor:pointer;font-size:0.85rem;color:rgba(255,255,255,0.7);flex-shrink:0" onmouseenter="showVolumeSlider()" onmouseleave="scheduleHideVolume()">🔊</span>
+        <div id="volumeSliderWrap" style="display:none;align-items:center;gap:6px" onmouseenter="cancelHideVolume()" onmouseleave="scheduleHideVolume()">
+          <input id="volumeSlider" type="range" min="0" max="1" step="0.05" value="1" oninput="setVolume(this.value)" style="width:70px;accent-color:var(--green-accent);cursor:pointer;height:3px">
+        </div>
+      </div>
+      <!-- muted badge (shown when admin disabled audio) -->
+      <span id="videoMutedBadge" style="display:none;font-family:'Barlow Condensed',sans-serif;font-size:0.65rem;color:rgba(255,255,255,0.3);letter-spacing:0.1em;flex-shrink:0">🔇</span>
+      <!-- unmute button (shown when browser blocked autoplay with sound) -->
+      <button id="btnUnmute" onclick="unmuteVideo()" style="display:none;background:transparent;border:1px solid rgba(34,197,94,0.5);color:var(--green-accent);font-family:'Barlow Condensed',sans-serif;font-size:0.65rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;padding:3px 10px;cursor:pointer;flex-shrink:0">🔊 Som</button>
+      <!-- fullscreen -->
+      <button onclick="videoFullscreen()" style="background:transparent;border:none;color:rgba(255,255,255,0.6);cursor:pointer;font-size:0.85rem;display:flex;align-items:center;padding:0;flex-shrink:0" title="Tela cheia">⤢</button>
     </div>
     <iframe id="slideYoutube" style="display:none;width:100%;height:100%;border:none" allowfullscreen allow="autoplay; encrypted-media"></iframe>
     <div id="slideEmpty" class="slide-empty">
@@ -443,8 +454,6 @@ header{background:var(--black2);padding:0;position:sticky;top:0;z-index:100;bord
     </div>
     <button class="btn-slide-nav btn-slide-next" onclick="navSlide(1)">→</button>
     <div class="slide-counter" id="slideCounter"></div>
-    <button id="btnUnmute" onclick="unmuteVideo()" style="display:none;position:absolute;top:1rem;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.7);border:1px solid rgba(255,255,255,0.25);color:white;font-family:'Barlow Condensed',sans-serif;font-size:0.78rem;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;padding:8px 18px;cursor:pointer;backdrop-filter:blur(6px);white-space:nowrap;transition:all 0.2s">🔊 Ativar som</button>
-    <div id="videoMutedBadge" style="display:none;position:absolute;top:1rem;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.6);color:rgba(255,255,255,0.45);font-family:'Barlow Condensed',sans-serif;font-size:0.72rem;font-weight:600;letter-spacing:0.12em;padding:5px 12px;backdrop-filter:blur(4px)">🔇 SEM ÁUDIO</div>
     <button class="btn-zoom" id="btnZoom" onclick="openZoom()" title="Tela cheia">⤢</button>
   </div>
   <div class="thumbs-bar" id="thumbsBar">
@@ -869,9 +878,11 @@ function renderSlide() {
   const btnUnmute = document.getElementById('btnUnmute');
   const mutedBadge = document.getElementById('videoMutedBadge');
   const videoBar = document.getElementById('videoBottomBar');
+  const volumeWrap = document.getElementById('volumeWrap');
   if (btnUnmute) btnUnmute.style.display = 'none';
   if (mutedBadge) mutedBadge.style.display = 'none';
   if (videoBar) videoBar.style.display = 'none';
+  if (volumeWrap) volumeWrap.style.display = 'none';
 
   // hide all
   img.style.display = 'none';
@@ -903,12 +914,22 @@ function renderSlide() {
 
     const btnUnmute = document.getElementById('btnUnmute');
     const mutedBadge = document.getElementById('videoMutedBadge');
+    const volumeWrap = document.getElementById('volumeWrap');
+
     if (current.muted) {
       if (btnUnmute) btnUnmute.style.display = 'none';
       if (mutedBadge) mutedBadge.style.display = 'block';
+      if (volumeWrap) volumeWrap.style.display = 'none';
     } else {
-      if (btnUnmute) btnUnmute.style.display = video.muted ? 'block' : 'none';
       if (mutedBadge) mutedBadge.style.display = 'none';
+      if (video.muted) {
+        // browser blocked autoplay with sound
+        if (btnUnmute) btnUnmute.style.display = 'flex';
+        if (volumeWrap) volumeWrap.style.display = 'none';
+      } else {
+        if (btnUnmute) btnUnmute.style.display = 'none';
+        if (volumeWrap) volumeWrap.style.display = 'flex';
+      }
     }
 
     video.ontimeupdate = () => {
@@ -1036,11 +1057,33 @@ function navSlide(dir) {
   currentSlide = (currentSlide + dir + photos.length) % photos.length;
   renderSlide();
 }
+let volumeHideTimer = null;
+function showVolumeSlider() {
+  clearTimeout(volumeHideTimer);
+  document.getElementById('volumeSliderWrap').style.display = 'flex';
+}
+function scheduleHideVolume() {
+  volumeHideTimer = setTimeout(() => {
+    document.getElementById('volumeSliderWrap').style.display = 'none';
+  }, 800);
+}
+function cancelHideVolume() { clearTimeout(volumeHideTimer); }
+function setVolume(val) {
+  const v = document.getElementById('slideVideo');
+  v.volume = val;
+  document.getElementById('btnVolIcon').textContent = val == 0 ? '🔇' : val < 0.5 ? '🔉' : '🔊';
+}
+function videoFullscreen() {
+  const v = document.getElementById('slideVideo');
+  if (v.requestFullscreen) v.requestFullscreen();
+  else if (v.webkitRequestFullscreen) v.webkitRequestFullscreen();
+}
 function unmuteVideo() {
   const video = document.getElementById('slideVideo');
   video.muted = false;
-  const btn = document.getElementById('btnUnmute');
-  if (btn) btn.style.display = 'none';
+  document.getElementById('btnUnmute').style.display = 'none';
+  const volumeWrap = document.getElementById('volumeWrap');
+  if (volumeWrap) volumeWrap.style.display = 'flex';
 }
 
 function videoPlayPause() {
