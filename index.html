@@ -430,18 +430,7 @@ header{background:var(--black2);padding:0;position:sticky;top:0;z-index:100;bord
   <div class="slideshow-body">
     <button class="btn-slide-nav btn-slide-prev" onclick="navSlide(-1)">←</button>
     <img id="slideImg" src="" alt="" onclick="openZoom()">
-    <video id="slideVideo" playsinline style="display:none;max-height:calc(100% - 52px);max-width:100%;object-fit:contain"></video>
-    <div id="videoBar" style="display:none;position:absolute;bottom:1rem;left:5rem;right:5rem;display:none;flex-direction:column;gap:6px">
-      <div id="videoProg" onclick="videoSeek(event)" style="height:3px;background:rgba(255,255,255,0.15);cursor:pointer;position:relative">
-        <div id="videoProgFill" style="height:100%;background:var(--green-accent);width:0%;pointer-events:none;transition:width 0.3s linear"></div>
-      </div>
-      <div style="display:flex;align-items:center;gap:10px">
-        <button onclick="videoPlayPause()" id="btnVidPlay" style="background:transparent;border:1px solid rgba(255,255,255,0.3);color:white;width:28px;height:28px;cursor:pointer;font-size:0.8rem;display:flex;align-items:center;justify-content:center;flex-shrink:0">▶</button>
-        <span id="videoTimeLabel" style="font-family:'Barlow Condensed',sans-serif;font-size:0.68rem;color:rgba(255,255,255,0.4);letter-spacing:0.06em;flex:1">0:00 / 0:00</span>
-        <button id="btnUnmute" onclick="unmuteVideo()" style="display:none;background:rgba(34,197,94,0.15);border:1px solid rgba(34,197,94,0.4);color:var(--green-accent);font-family:'Barlow Condensed',sans-serif;font-size:0.68rem;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;padding:5px 12px;cursor:pointer">🔊 Ativar som</button>
-        <span id="videoMutedBadge" style="display:none;font-family:'Barlow Condensed',sans-serif;font-size:0.68rem;color:rgba(255,255,255,0.25);letter-spacing:0.1em">🔇 SEM ÁUDIO</span>
-      </div>
-    </div>
+    <video id="slideVideo" controls playsinline style="display:none;max-height:100%;max-width:100%;object-fit:contain"></video>
     <iframe id="slideYoutube" style="display:none;width:100%;height:100%;border:none" allowfullscreen allow="autoplay; encrypted-media"></iframe>
     <div id="slideEmpty" class="slide-empty">
       <div class="slide-empty-icon">📷</div>
@@ -871,9 +860,6 @@ function renderSlide() {
   if (!video.paused) { video.pause(); }
   const ytFrame = document.getElementById('slideYoutube');
   if (ytFrame.src) { ytFrame.src = ''; }
-  // hide video bar
-  const videoBar = document.getElementById('videoBar');
-  if (videoBar) videoBar.style.display = 'none';
   const btnUnmute = document.getElementById('btnUnmute');
   const mutedBadge = document.getElementById('videoMutedBadge');
   if (btnUnmute) btnUnmute.style.display = 'none';
@@ -892,35 +878,24 @@ function renderSlide() {
   } else if (isVideo) {
     video.style.display = 'block';
     video.src = current.url;
-    video.muted = true; // always start muted (browser autoplay policy)
+    video.muted = !!current.muted; // respect admin setting
     video.load();
+    video.play().catch(() => {
+      // if autoplay blocked, try muted
+      video.muted = true;
+      video.play().catch(() => {});
+    });
 
-    const videoBar = document.getElementById('videoBar');
     const btnUnmute = document.getElementById('btnUnmute');
     const mutedBadge = document.getElementById('videoMutedBadge');
-    videoBar.style.display = 'flex';
-
     if (current.muted) {
-      // sem áudio — visitante não pode ativar
-      btnUnmute.style.display = 'none';
-      mutedBadge.style.display = 'block';
+      if (btnUnmute) btnUnmute.style.display = 'none';
+      if (mutedBadge) mutedBadge.style.display = 'block';
     } else {
-      // com áudio — visitante pode ativar
-      btnUnmute.style.display = 'block';
-      mutedBadge.style.display = 'none';
+      // has audio — show unmute button only if browser forced mute
+      if (btnUnmute) btnUnmute.style.display = video.muted ? 'block' : 'none';
+      if (mutedBadge) mutedBadge.style.display = 'none';
     }
-
-    // update progress bar and time
-    video.ontimeupdate = () => {
-      if (!video.duration) return;
-      const pct = (video.currentTime / video.duration) * 100;
-      document.getElementById('videoProgFill').style.width = pct + '%';
-      const fmt = s => `${Math.floor(s/60)}:${String(Math.floor(s%60)).padStart(2,'0')}`;
-      document.getElementById('videoTimeLabel').textContent = `${fmt(video.currentTime)} / ${fmt(video.duration)}`;
-    };
-    video.onplay = () => { document.getElementById('btnVidPlay').textContent = '⏸'; };
-    video.onpause = () => { document.getElementById('btnVidPlay').textContent = '▶'; };
-    video.onended = () => navSlide(1);
   } else {
     btnZoom && (btnZoom.style.display = 'flex');
     img.style.display = 'block';
@@ -1041,20 +1016,8 @@ function navSlide(dir) {
 function unmuteVideo() {
   const video = document.getElementById('slideVideo');
   video.muted = false;
-  document.getElementById('btnUnmute').style.display = 'none';
-}
-
-function videoPlayPause() {
-  const video = document.getElementById('slideVideo');
-  if (video.paused) video.play(); else video.pause();
-}
-
-function videoSeek(e) {
-  const video = document.getElementById('slideVideo');
-  if (!video.duration) return;
-  const bar = document.getElementById('videoProg');
-  const rect = bar.getBoundingClientRect();
-  video.currentTime = ((e.clientX - rect.left) / rect.width) * video.duration;
+  const btnUnmute = document.getElementById('btnUnmute');
+  if (btnUnmute) btnUnmute.style.display = 'none';
 }
 
 function closeSlideshow() {
