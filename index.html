@@ -162,7 +162,27 @@ header{background:var(--black2);padding:0;position:sticky;top:0;z-index:100;bord
 .btn-slide-prev{left:1.5rem}
 .btn-slide-next{right:1.5rem}
 .slide-counter{position:absolute;bottom:1.25rem;left:50%;transform:translateX(-50%);font-family:'Barlow Condensed',sans-serif;font-size:0.72rem;font-weight:600;color:var(--text-dim);letter-spacing:0.14em;text-transform:uppercase}
-.btn-zoom{position:absolute;bottom:1.25rem;right:1.5rem;background:rgba(0,0,0,0.5);border:1px solid var(--border);color:var(--text-muted);width:34px;height:34px;cursor:pointer;font-size:0.9rem;display:flex;align-items:center;justify-content:center;transition:all 0.2s;z-index:10;backdrop-filter:blur(4px)}
+.btn-tv{background:transparent;border:1px solid var(--border);color:var(--text-muted);font-size:0.85rem;width:32px;height:32px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all 0.2s}
+.btn-tv:hover{border-color:var(--green-accent);color:var(--green-accent)}
+
+/* ── TV MODE ── */
+#tvModal{display:none;position:fixed;inset:0;background:#000;z-index:3000;flex-direction:column}
+#tvModal.open{display:flex}
+#tvSlide{flex:1;position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center}
+#tvImg{max-width:100%;max-height:100%;object-fit:contain;display:none;transition:opacity 0.8s}
+#tvImg.fading{opacity:0}
+#tvVideo{max-width:100%;max-height:100%;object-fit:contain;display:none}
+#tvIframe{width:100%;height:100%;border:none;display:none}
+.tv-info{position:absolute;bottom:0;left:0;right:0;padding:2rem 3rem;background:linear-gradient(to top,rgba(0,0,0,0.85) 0%,transparent 100%);display:flex;align-items:flex-end;justify-content:space-between}
+.tv-client{font-family:'Barlow Condensed',sans-serif;font-size:2rem;font-weight:800;color:#fff;text-transform:uppercase;letter-spacing:0.04em}
+.tv-meta{font-size:0.9rem;color:rgba(255,255,255,0.5);letter-spacing:0.08em;margin-top:4px}
+.tv-size{font-family:'Barlow Condensed',sans-serif;font-size:1rem;font-weight:700;letter-spacing:0.2em;text-transform:uppercase;background:rgba(34,197,94,0.85);color:#051a0a;padding:6px 16px}
+.tv-logo{position:absolute;top:1.5rem;right:2rem;opacity:0.4}
+.tv-progress{position:absolute;bottom:0;left:0;height:2px;background:var(--green-accent);transition:width linear}
+.tv-controls{position:absolute;top:1rem;left:1rem;display:flex;gap:8px;opacity:0;transition:opacity 0.3s}
+#tvModal:hover .tv-controls{opacity:1}
+.btn-tv-ctrl{background:rgba(0,0,0,0.6);border:1px solid rgba(255,255,255,0.15);color:rgba(255,255,255,0.7);font-family:'Barlow Condensed',sans-serif;font-size:0.72rem;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;padding:7px 14px;cursor:pointer;transition:all 0.2s;backdrop-filter:blur(4px)}
+.btn-tv-ctrl:hover{border-color:var(--green-accent);color:var(--green-accent)}
 .btn-zoom:hover{border-color:var(--green-accent);color:var(--green-accent)}
 #slideImg{cursor:zoom-in}
 #slideVideo{max-height:100%;max-width:100%;object-fit:contain;display:none;outline:none}
@@ -310,6 +330,7 @@ header{background:var(--black2);padding:0;position:sticky;top:0;z-index:100;bord
     <div class="header-actions">
       <span class="admin-badge" id="adminBadge">Admin</span>
       <button class="btn-logout" id="btnLogout" onclick="logout()">Sair</button>
+      <button class="btn-tv" onclick="openTVMode()" title="Modo TV">📺</button>
       <button class="btn-admin-trigger" id="btnAdminTrigger" onclick="openLogin()" title="Acesso administrativo">⬡</button>
     </div>
   </div>
@@ -338,6 +359,8 @@ header{background:var(--black2);padding:0;position:sticky;top:0;z-index:100;bord
     <button class="pill" data-filter="80m²">80m²</button>
     <button class="pill" data-filter="100m²">100m²</button>
     <button class="pill" data-filter="120m²">120m²</button>
+    <button class="pill" data-filter="150m²">150m²</button>
+    <button class="pill" data-filter="200m²">200m²</button>
   </div>
   <div class="search-wrap">
     <span class="search-icon">🔍</span>
@@ -394,6 +417,31 @@ header{background:var(--black2);padding:0;position:sticky;top:0;z-index:100;bord
   <div class="zoom-counter" id="zoomCounter"></div>
 </div>
 
+<!-- TV MODE -->
+<div id="tvModal">
+  <div id="tvSlide">
+    <img id="tvImg" src="" alt="">
+    <video id="tvVideo" playsinline muted autoplay></video>
+    <iframe id="tvIframe" allowfullscreen allow="autoplay; encrypted-media"></iframe>
+    <div class="tv-info">
+      <div>
+        <div class="tv-client" id="tvClient"></div>
+        <div class="tv-meta" id="tvMeta"></div>
+      </div>
+      <div class="tv-size" id="tvSize"></div>
+    </div>
+    <div class="tv-logo">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" style="width:48px;height:48px"><defs><style>.st0{fill:#57ac6e}.st1{fill:#ed8036}.st2{fill:#fff}.st3{fill:#4ca8d8}</style></defs><path class="st2" d="M371.66,177.87c-4.54,4.77-12.28,2.99-17.15-1.21l-113.69-98.25c-9.14-7.91-22.85-8.17-32.18-.12L34.72,228.29c-3.32,2.87-5.51,5.94-6.75,9.9-1.66,5.27,1.69,10.35,7.27,11.33,10.74,1.87,26.77-.07,35.32.88,4.75.54,8.79,3.97,9.05,9.05.92,17.94-.1,35.87-.05,53.84.03,12.3.61,24.6.6,36.89,0,7.59,0,15.19,0,22.78,0,.71,0,1.42,0,2.13v37.03c0,12.19,4.68,22.06,17.89,22.96,17.76,1.19,35.15.14,53.04-.36,2.57-.07,5.94,1.05,6.75,3.47,1.4,4.16,1.14,9.07-.55,13.04-.64,1.55-3.42,1.88-4.92,1.9l-33.18.5-24.16.1c-8.98.03-17.29-2.23-23.73-9.28-5.94-6.46-10.43-14.49-11.31-23.66-1.5-15.51-.97-30.61-.98-45.7l-.03-37.97.03-37.98c0-6.87-.64-13.82,0-20.71-.43-1.8.5-3.9-1.07-5.51-6.67-6.81-38.85,5.11-48.38-20.21-5.08-13.51-1.35-28.07,9.98-37.84L194.43,63.91c17.45-15.06,42.96-15.2,60.37-.14l114.59,99.06c4.15,3.59,6.13,11.02,2.28,15.04Z"/><path class="st1" d="M252.93,382.5c-4.95.57-8.92,4.21-8.92,9.99l-.07,58.57c0,6.2,5.79,9.98,11.21,9.49,5.73-.52,9.02-5.17,8.97-11.65l-.46-57.57c-.05-6-5.5-9.44-10.73-8.84Z"/><path class="st3" d="M221.91,382.55c-5.22.95-8.41,4.82-8.39,10.72l.14,58.64c.01,5.9,6.35,9.12,11.21,8.56,5.69-.65,8.89-5.2,8.82-11.66l-.6-58.07c-.06-6.13-6.29-9.08-11.18-8.19Z"/><path class="st0" d="M192.25,382.47c-5.04.57-9.06,4.08-9.08,9.92l-.25,56.03c-.03,6.88,3.15,11.96,10.17,12.11,6.07.13,10.24-4.53,10.17-11.65l-.57-58.03c-.06-5.76-5.62-8.92-10.43-8.38Z"/></svg>
+    </div>
+    <div class="tv-progress" id="tvProgress"></div>
+    <div class="tv-controls">
+      <button class="btn-tv-ctrl" onclick="tvPause()">⏸ Pausar</button>
+      <button class="btn-tv-ctrl" onclick="tvNext()">⏭ Próximo</button>
+      <button class="btn-tv-ctrl" onclick="closeTVMode()">✕ Sair</button>
+    </div>
+  </div>
+</div>
+
 <!-- LOGIN MODAL -->
 <div id="loginModal">
   <div class="login-box">
@@ -439,6 +487,8 @@ header{background:var(--black2);padding:0;position:sticky;top:0;z-index:100;bord
         <option value="80m²">80m²</option>
         <option value="100m²">100m²</option>
         <option value="120m²">120m²</option>
+        <option value="150m²">150m²</option>
+        <option value="200m²">200m²</option>
       </select>
     </div>
     <div class="form-actions">
@@ -994,7 +1044,133 @@ document.querySelectorAll('.pill').forEach(p => {
     this.classList.add('active'); currentFilter = this.dataset.filter; renderGrid();
   });
 });
+// ══════════════════════════════
+// TV MODE
+// ══════════════════════════════
+let tvQueue = [];
+let tvIdx = 0;
+let tvTimer = null;
+let tvPaused = false;
+const TV_DURATION = 6000; // ms per photo
+
+function buildTVQueue() {
+  const all = [];
+  obras.forEach(obra => {
+    (obra.rooms || []).forEach(room => {
+      (room.photos || []).forEach(photo => {
+        all.push({ photo, obra });
+      });
+    });
+  });
+  // shuffle
+  for (let i = all.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [all[i], all[j]] = [all[j], all[i]];
+  }
+  return all;
+}
+
+function openTVMode() {
+  tvQueue = buildTVQueue();
+  if (!tvQueue.length) { showToast('Nenhuma mídia para exibir'); return; }
+  tvIdx = 0;
+  tvPaused = false;
+  document.getElementById('tvModal').classList.add('open');
+  document.body.style.overflow = 'hidden';
+  tvShowCurrent();
+}
+
+function closeTVMode() {
+  clearTimeout(tvTimer);
+  document.getElementById('tvModal').classList.remove('open');
+  document.body.style.overflow = '';
+  const video = document.getElementById('tvVideo');
+  video.pause(); video.src = '';
+  document.getElementById('tvIframe').src = '';
+  document.getElementById('tvImg').style.display = 'none';
+  document.getElementById('tvVideo').style.display = 'none';
+  document.getElementById('tvIframe').style.display = 'none';
+}
+
+function tvShowCurrent() {
+  if (!tvQueue.length) return;
+  const { photo, obra } = tvQueue[tvIdx];
+  const img = document.getElementById('tvImg');
+  const video = document.getElementById('tvVideo');
+  const iframe = document.getElementById('tvIframe');
+  const prog = document.getElementById('tvProgress');
+
+  // reset
+  img.style.display = 'none';
+  video.style.display = 'none';
+  iframe.style.display = 'none';
+  video.pause(); video.src = '';
+  iframe.src = '';
+
+  // info
+  document.getElementById('tvClient').textContent = obra.client_name;
+  document.getElementById('tvMeta').textContent = obra.address || '';
+  document.getElementById('tvSize').textContent = obra.size || '';
+  document.getElementById('tvSize').style.display = obra.size ? 'block' : 'none';
+
+  clearTimeout(tvTimer);
+  prog.style.transition = 'none';
+  prog.style.width = '0%';
+
+  if (photo.type === 'youtube') {
+    iframe.style.display = 'block';
+    iframe.src = `https://www.youtube.com/embed/${photo.youtube_id}?autoplay=1&rel=0&controls=0`;
+    scheduleTVNext(15000);
+  } else if (photo.type === 'video') {
+    video.style.display = 'block';
+    video.src = photo.url;
+    video.play().catch(() => {});
+    video.onended = () => tvNext();
+    scheduleTVNext(60000);
+  } else {
+    img.classList.add('fading');
+    img.style.display = 'block';
+    img.src = photo.url;
+    img.onload = () => img.classList.remove('fading');
+    scheduleTVNext(TV_DURATION);
+  }
+}
+
+function scheduleTVNext(duration) {
+  if (tvPaused) return;
+  const prog = document.getElementById('tvProgress');
+  setTimeout(() => {
+    prog.style.transition = `width ${duration}ms linear`;
+    prog.style.width = '100%';
+  }, 50);
+  tvTimer = setTimeout(() => tvNext(), duration);
+}
+
+function tvNext() {
+  clearTimeout(tvTimer);
+  tvIdx = (tvIdx + 1) % tvQueue.length;
+  if (tvIdx === 0) tvQueue = buildTVQueue(); // re-shuffle when cycle ends
+  tvShowCurrent();
+}
+
+function tvPause() {
+  if (tvPaused) {
+    tvPaused = false;
+    tvShowCurrent();
+  } else {
+    tvPaused = true;
+    clearTimeout(tvTimer);
+    document.getElementById('tvProgress').style.transition = 'none';
+  }
+}
+
 document.addEventListener('keydown', e => {
+  if (document.getElementById('tvModal').classList.contains('open')) {
+    if (e.key === 'Escape') closeTVMode();
+    if (e.key === 'ArrowRight' || e.key === ' ') tvNext();
+    if (e.key === 'p' || e.key === 'P') tvPause();
+    return;
+  }
   if (document.getElementById('zoomOverlay').classList.contains('open')) {
     if (e.key === 'ArrowLeft') zoomNav(-1);
     if (e.key === 'ArrowRight') zoomNav(1);
