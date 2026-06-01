@@ -745,12 +745,19 @@ function updateStats() {
 // ══════════════════════════════
 // RENDER GRID
 // ══════════════════════════════
+function normalizeStr(str) {
+  return (str || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+}
+
 function renderGrid() {
   const grid = document.getElementById('obrasGrid');
-  const q = document.getElementById('searchInput').value.toLowerCase();
+  const q = normalizeStr(document.getElementById('searchInput').value);
   let list = obras;
   if (currentFilter !== 'all') list = list.filter(o => o.size === currentFilter);
-  if (q) list = list.filter(o => o.client_name.toLowerCase().includes(q) || (o.address || '').toLowerCase().includes(q));
+  if (q) list = list.filter(o =>
+    normalizeStr(o.client_name).includes(q) ||
+    normalizeStr(o.address).includes(q)
+  );
 
   let html = '';
   if (isAdmin) html += `<div class="btn-add-obra-card" onclick="openNewObra()"><span class="add-plus">+</span><span class="add-label">Nova obra</span></div>`;
@@ -843,10 +850,11 @@ function renderSlide() {
   const isVideo = current.type === 'video';
   const isYoutube = current.type === 'youtube';
 
-  // pause any playing video/youtube when switching
+  // pause any playing video/youtube when switching and reset mute
   if (!video.paused) { video.pause(); }
+  video.muted = false;
   const ytFrame = document.getElementById('slideYoutube');
-  if (ytFrame.src) { ytFrame.src = ytFrame.src; } // reload stops playback
+  if (ytFrame.src) { ytFrame.src = ''; }
 
   // hide all
   img.style.display = 'none';
@@ -956,7 +964,17 @@ function navSlide(dir) {
   currentSlide = (currentSlide + dir + photos.length) % photos.length;
   renderSlide();
 }
-function closeSlideshow() { document.getElementById('slideshowModal').classList.remove('open'); document.body.style.overflow = ''; }
+function closeSlideshow() {
+  // stop video and iframe when closing
+  const video = document.getElementById('slideVideo');
+  video.pause();
+  video.src = '';
+  video.muted = false; // reset mute for next video
+  const yt = document.getElementById('slideYoutube');
+  yt.src = '';
+  document.getElementById('slideshowModal').classList.remove('open');
+  document.body.style.overflow = '';
+}
 
 // ══════════════════════════════
 // ZOOM / FULLSCREEN
