@@ -222,7 +222,40 @@ header{background:var(--black2);padding:0;position:sticky;top:0;z-index:100;bord
 .thumbs-hint{font-family:'Barlow Condensed',sans-serif;font-size:0.58rem;letter-spacing:0.14em;text-transform:uppercase;color:var(--text-dim);margin-top:5px;display:none}
 .thumbs-hint.visible{display:block}
 
-/* ── LOGIN MODAL ── */
+/* TV MANAGER */
+#tvManagerModal{display:none;position:fixed;inset:0;background:rgba(4,7,4,0.95);z-index:600;align-items:center;justify-content:center}
+#tvManagerModal.open{display:flex}
+.tv-manager-box{background:var(--black3);border:1px solid var(--border-green);padding:2rem;width:90%;max-width:560px;max-height:88vh;overflow-y:auto}
+.tv-manager-box h3{font-family:'Barlow Condensed',sans-serif;font-size:1.6rem;font-weight:800;color:var(--white);text-transform:uppercase;letter-spacing:0.04em;margin-bottom:0.25rem}
+.tv-manager-sub{font-size:0.68rem;color:var(--text-dim);letter-spacing:0.12em;text-transform:uppercase;margin-bottom:1.5rem}
+.tv-source-options{display:flex;flex-direction:column;gap:8px;margin-bottom:1.5rem}
+.tv-source-opt{display:flex;align-items:center;gap:12px;padding:12px 14px;border:1px solid var(--border);cursor:pointer;transition:all 0.2s}
+.tv-source-opt:hover{border-color:var(--border-green)}
+.tv-source-opt.selected{border-color:var(--green-accent);background:rgba(34,197,94,0.06)}
+.tv-source-opt input{accent-color:var(--green-accent);width:16px;height:16px;flex-shrink:0}
+.tv-source-label{font-family:'Barlow Condensed',sans-serif;font-size:0.9rem;font-weight:600;color:var(--white);letter-spacing:0.06em;text-transform:uppercase}
+.tv-source-desc{font-size:0.68rem;color:var(--text-dim);margin-top:2px}
+.tv-divider{height:1px;background:var(--border);margin:1.25rem 0}
+.tv-media-list{display:flex;flex-direction:column;gap:6px;margin-bottom:1rem;max-height:200px;overflow-y:auto}
+.tv-media-item{display:flex;align-items:center;gap:10px;padding:8px 10px;background:rgba(255,255,255,0.03);border:1px solid var(--border)}
+.tv-media-thumb{width:48px;height:34px;object-fit:cover;flex-shrink:0;background:#111;display:flex;align-items:center;justify-content:center;font-size:0.7rem;color:var(--text-dim)}
+.tv-media-label{flex:1;font-size:0.75rem;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.btn-tv-media-del{background:transparent;border:none;color:rgba(255,255,255,0.25);cursor:pointer;font-size:0.8rem;padding:4px;transition:color 0.2s;flex-shrink:0}
+.btn-tv-media-del:hover{color:#E24B4A}
+.tv-upload-area{border:1px dashed rgba(34,197,94,0.25);padding:1.25rem;text-align:center;cursor:pointer;transition:all 0.2s;margin-bottom:0.75rem}
+.tv-upload-area:hover{border-color:var(--green-accent);background:rgba(34,197,94,0.04)}
+.tv-upload-label{font-family:'Barlow Condensed',sans-serif;font-size:0.8rem;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;color:var(--text-dim)}
+.tv-yt-row{display:flex;gap:8px;margin-bottom:0.75rem}
+.tv-yt-input{flex:1;background:rgba(255,255,255,0.04);border:1px solid var(--border);color:var(--white);font-family:'Barlow',sans-serif;font-size:0.82rem;padding:8px 12px;outline:none;transition:border-color 0.2s}
+.tv-yt-input:focus{border-color:var(--border-green)}
+.tv-yt-input::placeholder{color:var(--text-dim)}
+.btn-tv-yt-add{background:rgba(255,0,0,0.15);border:1px solid rgba(255,80,80,0.3);color:#ff6b6b;font-family:'Barlow Condensed',sans-serif;font-size:0.72rem;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;padding:8px 14px;cursor:pointer;transition:all 0.2s;white-space:nowrap}
+.btn-tv-yt-add:hover{background:rgba(255,0,0,0.25)}
+.tv-manager-actions{display:flex;gap:8px;margin-top:1.5rem}
+.btn-tv-launch{flex:2;background:var(--green);border:none;color:var(--white);font-family:'Barlow Condensed',sans-serif;font-size:0.82rem;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;padding:11px;cursor:pointer;transition:all 0.2s}
+.btn-tv-launch:hover{background:var(--green-bright)}
+.btn-tv-close-mgr{flex:1;background:transparent;border:1px solid var(--border);color:var(--text-dim);font-family:'Barlow Condensed',sans-serif;font-size:0.72rem;font-weight:600;letter-spacing:0.15em;text-transform:uppercase;padding:10px;cursor:pointer;transition:all 0.2s}
+.btn-tv-close-mgr:hover{border-color:rgba(255,255,255,0.2);color:var(--text-muted)}
 #loginModal{display:none;position:fixed;inset:0;background:rgba(4,7,4,0.95);z-index:600;align-items:center;justify-content:center}
 #loginModal.open{display:flex}
 .login-box{background:var(--black3);border:1px solid var(--border-green);padding:2.5rem;width:90%;max-width:380px}
@@ -330,7 +363,8 @@ header{background:var(--black2);padding:0;position:sticky;top:0;z-index:100;bord
     <div class="header-actions">
       <span class="admin-badge" id="adminBadge">Admin</span>
       <button class="btn-logout" id="btnLogout" onclick="logout()">Sair</button>
-      <button class="btn-tv" onclick="openTVMode()" title="Modo TV">📺</button>
+      <button class="btn-tv" id="btnTV" onclick="openTVMode()" title="Modo TV" style="display:none">📺</button>
+      <button class="btn-tv" id="btnTVManager" onclick="openTVManager()" title="Gerenciar TV" style="display:none;font-size:0.65rem;width:auto;padding:0 10px;letter-spacing:0.08em">⚙ TV</button>
       <button class="btn-admin-trigger" id="btnAdminTrigger" onclick="openLogin()" title="Acesso administrativo">⬡</button>
     </div>
   </div>
@@ -442,6 +476,51 @@ header{background:var(--black2);padding:0;position:sticky;top:0;z-index:100;bord
   </div>
 </div>
 
+<!-- TV MANAGER MODAL -->
+<div id="tvManagerModal">
+  <div class="tv-manager-box">
+    <h3>Modo TV</h3>
+    <div class="tv-manager-sub">Configure o que aparece na TV</div>
+
+    <div class="tv-source-options">
+      <label class="tv-source-opt" id="srcOptVitrine">
+        <input type="radio" name="tvSource" value="vitrine" checked onchange="updateTVSourceUI()">
+        <div><div class="tv-source-label">Fotos da vitrine</div><div class="tv-source-desc">Todas as fotos e vídeos das obras cadastradas</div></div>
+      </label>
+      <label class="tv-source-opt" id="srcOptExclusivo">
+        <input type="radio" name="tvSource" value="exclusivo" onchange="updateTVSourceUI()">
+        <div><div class="tv-source-label">Mídia exclusiva da TV</div><div class="tv-source-desc">Depoimentos, promoções, conteúdo específico para a TV</div></div>
+      </label>
+      <label class="tv-source-opt" id="srcOptAmbos">
+        <input type="radio" name="tvSource" value="ambos" onchange="updateTVSourceUI()">
+        <div><div class="tv-source-label">Vitrine + Exclusiva</div><div class="tv-source-desc">Mistura aleatória dos dois tipos de conteúdo</div></div>
+      </label>
+    </div>
+
+    <div class="tv-divider"></div>
+
+    <div id="tvExclusiveSection">
+      <div class="tv-manager-sub" style="margin-bottom:0.75rem">Mídia exclusiva da TV</div>
+      <div class="tv-media-list" id="tvMediaList"></div>
+      <div class="tv-upload-area" onclick="document.getElementById('tvFileInput').click()">
+        <div class="tv-upload-label">+ Fotos / Vídeos</div>
+        <div style="font-size:0.62rem;color:var(--text-dim);margin-top:4px;letter-spacing:0.06em">Clique para selecionar arquivos</div>
+      </div>
+      <div class="tv-yt-row">
+        <input class="tv-yt-input" id="tvYtInput" placeholder="Link do YouTube..." type="text">
+        <button class="btn-tv-yt-add" onclick="addTVYoutube()">+ YouTube</button>
+      </div>
+    </div>
+
+    <div class="tv-manager-actions">
+      <button class="btn-tv-close-mgr" onclick="closeTVManager()">Cancelar</button>
+      <button class="btn-tv-launch" onclick="launchTVFromManager()">▶ Iniciar TV</button>
+    </div>
+  </div>
+</div>
+
+<input type="file" id="tvFileInput" accept="image/*,video/*,.mp4,.mov,.webm" multiple style="display:none" onchange="handleTVUpload(this.files)">
+
 <!-- LOGIN MODAL -->
 <div id="loginModal">
   <div class="login-box">
@@ -540,9 +619,15 @@ async function init() {
   setTimeout(() => { document.getElementById('searchInput').value = ''; }, 100);
   setTimeout(() => { document.getElementById('searchInput').value = ''; }, 500);
   await loadObras();
+  await loadTVMedia();
   renderGrid();
   updateAdminUI();
   setTimeout(() => document.getElementById('pageLoader').classList.add('hidden'), 900);
+  // URL #tv — abre modo TV direto sem precisar de admin
+  if (window.location.hash === '#tv') {
+    tvSource = 'vitrine';
+    setTimeout(() => openTVMode(), 1300);
+  }
 }
 
 // ══════════════════════════════
@@ -979,6 +1064,8 @@ function updateAdminUI() {
   document.getElementById('adminBadge').classList.toggle('visible', isAdmin);
   document.getElementById('btnLogout').classList.toggle('visible', isAdmin);
   document.getElementById('btnAdminTrigger').style.display = isAdmin ? 'none' : 'block';
+  document.getElementById('btnTV').style.display = isAdmin ? 'flex' : 'none';
+  document.getElementById('btnTVManager').style.display = isAdmin ? 'flex' : 'none';
 }
 
 // ══════════════════════════════
@@ -1045,6 +1132,106 @@ document.querySelectorAll('.pill').forEach(p => {
   });
 });
 // ══════════════════════════════
+// TV MANAGER
+// ══════════════════════════════
+let tvMediaList = [];
+let tvSource = 'vitrine';
+
+async function loadTVMedia() {
+  const { data, error } = await db.from('tv_media').select('*').order('order');
+  if (!error) tvMediaList = data || [];
+}
+
+function openTVManager() {
+  loadTVMedia().then(() => renderTVMediaList());
+  document.getElementById('tvManagerModal').classList.add('open');
+  updateTVSourceUI();
+}
+
+function closeTVManager() {
+  document.getElementById('tvManagerModal').classList.remove('open');
+}
+
+function updateTVSourceUI() {
+  const val = document.querySelector('input[name="tvSource"]:checked')?.value || 'vitrine';
+  tvSource = val;
+  const showExclusive = val === 'exclusivo' || val === 'ambos';
+  document.getElementById('tvExclusiveSection').style.display = showExclusive ? 'block' : 'none';
+  document.querySelectorAll('.tv-source-opt').forEach(el => {
+    el.classList.toggle('selected', el.querySelector('input').value === val);
+  });
+}
+
+function renderTVMediaList() {
+  const list = document.getElementById('tvMediaList');
+  if (!tvMediaList.length) { list.innerHTML = '<div style="font-size:0.7rem;color:var(--text-dim);padding:8px;text-align:center;letter-spacing:0.08em">Nenhuma mídia exclusiva ainda</div>'; return; }
+  list.innerHTML = tvMediaList.map(m => {
+    const thumb = m.type === 'youtube'
+      ? `<img class="tv-media-thumb" src="https://img.youtube.com/vi/${m.youtube_id}/mqdefault.jpg" alt="">`
+      : m.type === 'video'
+        ? `<div class="tv-media-thumb" style="display:flex">▶</div>`
+        : `<img class="tv-media-thumb" src="${m.url}" alt="">`;
+    return `<div class="tv-media-item">
+      ${thumb}
+      <span class="tv-media-label">${m.label || m.url}</span>
+      <button class="btn-tv-media-del" onclick="deleteTVMedia('${m.id}','${m.storage_path||''}')">✕</button>
+    </div>`;
+  }).join('');
+}
+
+async function handleTVUpload(files) {
+  if (!files.length) return;
+  const arr = Array.from(files);
+  showToast('Enviando...');
+  for (const file of arr) {
+    try {
+      const isVideo = file.type.startsWith('video/');
+      const uploadFile = isVideo ? file : await compressImage(file);
+      const ext = isVideo ? file.name.split('.').pop() : 'jpg';
+      const contentType = isVideo ? (file.type || 'video/mp4') : 'image/jpeg';
+      const type = isVideo ? 'video' : 'photo';
+      const path = `tv/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
+      const { error: upErr } = await db.storage.from(STORAGE_BUCKET).upload(path, uploadFile, { cacheControl: '3600', contentType });
+      if (upErr) throw upErr;
+      const { data: { publicUrl } } = db.storage.from(STORAGE_BUCKET).getPublicUrl(path);
+      await db.from('tv_media').insert([{ url: publicUrl, storage_path: path, type, label: file.name }]);
+    } catch(e) { console.error(e); }
+  }
+  document.getElementById('tvFileInput').value = '';
+  await loadTVMedia();
+  renderTVMediaList();
+  showToast('Mídia adicionada');
+}
+
+async function addTVYoutube() {
+  const url = document.getElementById('tvYtInput').value.trim();
+  if (!url) return;
+  const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|shorts\/))([a-zA-Z0-9_-]{11})/);
+  if (!match) { showToast('Link inválido'); return; }
+  const youtubeId = match[1];
+  await db.from('tv_media').insert([{ url, storage_path: `youtube/${youtubeId}`, type: 'youtube', youtube_id: youtubeId, label: `YouTube: ${youtubeId}` }]);
+  document.getElementById('tvYtInput').value = '';
+  await loadTVMedia();
+  renderTVMediaList();
+  showToast('YouTube adicionado');
+}
+
+async function deleteTVMedia(id, storagePath) {
+  if (!confirm('Remover esta mídia da TV?')) return;
+  if (storagePath && !storagePath.startsWith('youtube/')) {
+    await db.storage.from(STORAGE_BUCKET).remove([storagePath]);
+  }
+  await db.from('tv_media').delete().eq('id', id);
+  await loadTVMedia();
+  renderTVMediaList();
+}
+
+async function launchTVFromManager() {
+  closeTVManager();
+  openTVMode();
+}
+
+// ══════════════════════════════
 // TV MODE
 // ══════════════════════════════
 let tvQueue = [];
@@ -1055,19 +1242,37 @@ const TV_DURATION = 6000; // ms per photo
 
 function buildTVQueue() {
   const all = [];
-  obras.forEach(obra => {
-    (obra.rooms || []).forEach(room => {
-      (room.photos || []).forEach(photo => {
-        all.push({ photo, obra });
+
+  if (tvSource === 'vitrine' || tvSource === 'ambos') {
+    obras.forEach(obra => {
+      (obra.rooms || []).forEach(room => {
+        (room.photos || []).forEach(photo => {
+          all.push({ photo, obra, label: obra.client_name });
+        });
       });
     });
-  });
+  }
+
+  if (tvSource === 'exclusivo' || tvSource === 'ambos') {
+    tvMediaList.forEach(m => {
+      all.push({ photo: m, obra: null, label: m.label || '' });
+    });
+  }
+
   // shuffle
   for (let i = all.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [all[i], all[j]] = [all[j], all[i]];
   }
   return all;
+}
+
+function requestFullscreen() {
+  const el = document.documentElement;
+  if (el.requestFullscreen) el.requestFullscreen();
+  else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+  else if (el.mozRequestFullScreen) el.mozRequestFullScreen();
+  else if (el.msRequestFullscreen) el.msRequestFullscreen();
 }
 
 function openTVMode() {
@@ -1078,6 +1283,7 @@ function openTVMode() {
   document.getElementById('tvModal').classList.add('open');
   document.body.style.overflow = 'hidden';
   tvShowCurrent();
+  setTimeout(() => requestFullscreen(), 300);
 }
 
 function closeTVMode() {
@@ -1090,11 +1296,15 @@ function closeTVMode() {
   document.getElementById('tvImg').style.display = 'none';
   document.getElementById('tvVideo').style.display = 'none';
   document.getElementById('tvIframe').style.display = 'none';
+  if (document.fullscreenElement || document.webkitFullscreenElement) {
+    if (document.exitFullscreen) document.exitFullscreen();
+    else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+  }
 }
 
 function tvShowCurrent() {
   if (!tvQueue.length) return;
-  const { photo, obra } = tvQueue[tvIdx];
+  const { photo, obra, label } = tvQueue[tvIdx];
   const img = document.getElementById('tvImg');
   const video = document.getElementById('tvVideo');
   const iframe = document.getElementById('tvIframe');
@@ -1108,10 +1318,10 @@ function tvShowCurrent() {
   iframe.src = '';
 
   // info
-  document.getElementById('tvClient').textContent = obra.client_name;
-  document.getElementById('tvMeta').textContent = obra.address || '';
-  document.getElementById('tvSize').textContent = obra.size || '';
-  document.getElementById('tvSize').style.display = obra.size ? 'block' : 'none';
+  document.getElementById('tvClient').textContent = obra ? obra.client_name : (label || '');
+  document.getElementById('tvMeta').textContent = obra ? (obra.address || '') : '';
+  document.getElementById('tvSize').textContent = obra ? (obra.size || '') : '';
+  document.getElementById('tvSize').style.display = (obra && obra.size) ? 'block' : 'none';
 
   clearTimeout(tvTimer);
   prog.style.transition = 'none';
