@@ -168,18 +168,18 @@ header{background:var(--black2);padding:0;position:sticky;top:0;z-index:100;bord
 /* ── TV MODE ── */
 #tvModal{display:none;position:fixed;inset:0;background:#000;z-index:3000;flex-direction:column}
 #tvModal.open{display:flex}
-#tvSlide{flex:1;position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center}
-#tvImg{max-width:100%;max-height:100%;object-fit:contain;display:none;transition:opacity 0.8s}
+#tvSlide{flex:1;position:relative;display:flex;align-items:center;justify-content:center;background:#000;overflow:hidden}
+#tvImg{max-width:100%;max-height:100%;object-fit:contain;display:none;transition:opacity 0.8s;position:relative;z-index:1}
 #tvImg.fading{opacity:0}
-#tvVideo{max-width:100%;max-height:100%;object-fit:contain;display:none}
+#tvVideo{max-width:100%;max-height:100%;object-fit:contain;display:none;position:relative;z-index:1}
 #tvIframe{width:100%;height:100%;border:none;display:none}
-.tv-info{position:absolute;bottom:0;left:0;right:0;padding:2rem 3rem;background:linear-gradient(to top,rgba(0,0,0,0.85) 0%,transparent 100%);display:flex;align-items:flex-end;justify-content:space-between}
+.tv-info{position:absolute;bottom:0;left:0;right:0;padding:2rem 3rem;background:linear-gradient(to top,rgba(0,0,0,0.85) 0%,transparent 100%);display:flex;align-items:flex-end;justify-content:space-between;z-index:2;pointer-events:none}
 .tv-client{font-family:'Barlow Condensed',sans-serif;font-size:2rem;font-weight:800;color:#fff;text-transform:uppercase;letter-spacing:0.04em}
 .tv-meta{font-size:0.9rem;color:rgba(255,255,255,0.5);letter-spacing:0.08em;margin-top:4px}
 .tv-size{font-family:'Barlow Condensed',sans-serif;font-size:1rem;font-weight:700;letter-spacing:0.2em;text-transform:uppercase;background:rgba(34,197,94,0.85);color:#051a0a;padding:6px 16px}
-.tv-logo{position:absolute;top:1.5rem;right:2rem;opacity:0.4}
-.tv-progress{position:absolute;bottom:0;left:0;height:2px;background:var(--green-accent);transition:width linear}
-.tv-controls{position:absolute;top:1rem;left:1rem;display:flex;gap:8px;opacity:0;transition:opacity 0.5s;pointer-events:none}
+.tv-logo{position:absolute;top:1.5rem;right:2rem;opacity:0.4;z-index:2;pointer-events:none}
+.tv-progress{position:absolute;bottom:0;left:0;height:2px;background:var(--green-accent);transition:width linear;z-index:3}
+.tv-controls{position:absolute;top:1rem;left:1rem;display:flex;gap:8px;opacity:0;transition:opacity 0.5s;pointer-events:none;z-index:4}
 .btn-tv-ctrl{background:rgba(0,0,0,0.6);border:1px solid rgba(255,255,255,0.15);color:rgba(255,255,255,0.7);font-family:'Barlow Condensed',sans-serif;font-size:0.72rem;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;padding:7px 14px;cursor:pointer;transition:all 0.2s;backdrop-filter:blur(4px)}
 .btn-tv-ctrl:hover{border-color:var(--green-accent);color:var(--green-accent)}
 .btn-zoom:hover{border-color:var(--green-accent);color:var(--green-accent)}
@@ -473,9 +473,9 @@ header{background:var(--black2);padding:0;position:sticky;top:0;z-index:100;bord
 <!-- TV MODE -->
 <div id="tvModal">
   <div id="tvSlide">
-    <img id="tvImg" src="" alt="" style="display:none">
-    <video id="tvVideo" playsinline muted style="display:none;max-width:100%;max-height:100%;object-fit:contain"></video>
-    <iframe id="tvIframe" allowfullscreen allow="autoplay; encrypted-media" style="display:none;width:100%;height:100%;border:none;position:absolute;inset:0"></iframe>
+    <img id="tvImg" src="" alt="">
+    <video id="tvVideo" playsinline muted></video>
+    <iframe id="tvIframe" allowfullscreen allow="autoplay; encrypted-media" style="display:none;width:100%;height:100%;border:none;position:absolute;inset:0;z-index:1"></iframe>
     <div class="tv-info">
       <div>
         <div class="tv-client" id="tvClient"></div>
