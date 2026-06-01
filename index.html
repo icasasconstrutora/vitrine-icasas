@@ -533,9 +533,11 @@ header{background:var(--black2);padding:0;position:sticky;top:0;z-index:100;bord
         <div class="login-sub">iCasas · Vitrine dos Sonhos</div>
       </div>
     </div>
-    <div class="login-error" id="loginError">Senha incorreta</div>
-    <label class="login-label">Senha de acesso</label>
-    <input class="login-input" id="loginPasswordInput" type="password" placeholder="Digite a senha" onkeydown="if(event.key==='Enter')doLogin()">
+    <div class="login-error" id="loginError">Email ou senha incorretos</div>
+    <label class="login-label">Email</label>
+    <input class="login-input" id="loginEmailInput" type="email" placeholder="admin@icasas.com.br" autocomplete="username">
+    <label class="login-label">Senha</label>
+    <input class="login-input" id="loginPasswordInput" type="password" placeholder="Digite a senha" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()">
     <button class="btn-login" onclick="doLogin()">Entrar</button>
     <button class="btn-login-cancel" onclick="closeLogin()">Cancelar</button>
   </div>
@@ -596,7 +598,6 @@ header{background:var(--black2);padding:0;position:sticky;top:0;z-index:100;bord
 // ══════════════════════════════
 const SUPABASE_URL = 'https://mqdhavyaeujufhlqdlfg.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1xZGhhdnlhZXVqdWZobHFkbGZnIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3OTk0ODQ5NSwiZXhwIjoyMDk1NTI0NDk1fQ.8tjS6lQgaOzkp7QsvEEf46LJvCUiVecmpsl_tDW0kNM';
-const ADMIN_PASSWORD = 'icasas2025';
 const STORAGE_BUCKET = 'obra-photos';
 
 // ══════════════════════════════
@@ -606,7 +607,7 @@ const { createClient } = supabase;
 const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 let obras = [];
-let isAdmin = sessionStorage.getItem('vds_admin') === '1';
+let isAdmin = false;
 let currentObra = null;
 let currentRoomIdx = 0;
 let currentSlide = 0;
@@ -618,12 +619,23 @@ async function init() {
   document.getElementById('searchInput').value = '';
   setTimeout(() => { document.getElementById('searchInput').value = ''; }, 100);
   setTimeout(() => { document.getElementById('searchInput').value = ''; }, 500);
+
+  // check existing Supabase session
+  const { data: { session } } = await db.auth.getSession();
+  isAdmin = !!session;
+
+  // listen for auth changes
+  db.auth.onAuthStateChange((_event, session) => {
+    isAdmin = !!session;
+    updateAdminUI();
+    renderGrid();
+  });
+
   await loadObras();
   await loadTVMedia();
   renderGrid();
   updateAdminUI();
   setTimeout(() => document.getElementById('pageLoader').classList.add('hidden'), 900);
-  // URL #tv — abre modo TV direto sem precisar de admin
   if (window.location.hash === '#tv') {
     tvSource = 'vitrine';
     setTimeout(() => openTVMode(), 1300);
@@ -1050,16 +1062,34 @@ async function handlePhotoUpload(files) {
 // ══════════════════════════════
 // AUTH
 // ══════════════════════════════
-function openLogin() { document.getElementById('loginModal').classList.add('open'); setTimeout(()=>document.getElementById('loginPasswordInput').focus(),50); }
-function closeLogin() { document.getElementById('loginModal').classList.remove('open'); document.getElementById('loginError').style.display = 'none'; }
-function doLogin() {
-  if (document.getElementById('loginPasswordInput').value === ADMIN_PASSWORD) {
-    isAdmin = true; sessionStorage.setItem('vds_admin', '1'); closeLogin();
-    document.getElementById('loginPasswordInput').value = '';
-    updateAdminUI(); renderGrid(); showToast('Bem-vindo ao painel admin');
-  } else { document.getElementById('loginError').style.display = 'block'; }
+function openLogin() {
+  document.getElementById('loginModal').classList.add('open');
+  setTimeout(() => document.getElementById('loginEmailInput').focus(), 50);
 }
-function logout() { isAdmin = false; sessionStorage.removeItem('vds_admin'); updateAdminUI(); renderGrid(); showToast('Sessão encerrada'); }
+function closeLogin() {
+  document.getElementById('loginModal').classList.remove('open');
+  document.getElementById('loginError').style.display = 'none';
+}
+async function doLogin() {
+  const email = document.getElementById('loginEmailInput').value.trim();
+  const password = document.getElementById('loginPasswordInput').value;
+  const btn = document.querySelector('.btn-login');
+  btn.textContent = 'Entrando...'; btn.disabled = true;
+  const { error } = await db.auth.signInWithPassword({ email, password });
+  btn.textContent = 'Entrar'; btn.disabled = false;
+  if (error) {
+    document.getElementById('loginError').style.display = 'block';
+  } else {
+    document.getElementById('loginPasswordInput').value = '';
+    document.getElementById('loginEmailInput').value = '';
+    closeLogin();
+    showToast('Bem-vindo ao painel admin');
+  }
+}
+async function logout() {
+  await db.auth.signOut();
+  showToast('Sessão encerrada');
+}
 function updateAdminUI() {
   document.getElementById('adminBadge').classList.toggle('visible', isAdmin);
   document.getElementById('btnLogout').classList.toggle('visible', isAdmin);
