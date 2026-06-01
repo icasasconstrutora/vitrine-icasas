@@ -1534,6 +1534,8 @@ function tvShowCurrent() {
   } else if (photo.type === 'video') {
     video.style.display = 'block';
     video.src = photo.url;
+    video.muted = true; // muted garante autoplay em qualquer browser/Smart TV
+    video.load();
     video.play().catch(() => {});
     video.onended = () => tvNext();
     scheduleTVNext(60000);
