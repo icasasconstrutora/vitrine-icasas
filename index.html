@@ -986,6 +986,8 @@ async function togglePhotoMute(photoId, idx) {
     renderSlide();
   } catch(e) { console.error(e); showToast('Erro ao alterar áudio'); }
 }
+
+async function reorderPhotos(fromIdx, toIdx) {
   const rooms = currentObra.rooms || [];
   const room = rooms[currentRoomIdx];
   if (!room) return;
