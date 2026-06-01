@@ -173,18 +173,14 @@ header{background:var(--black2);padding:0;position:sticky;top:0;z-index:100;bord
 #tvImg.fading{opacity:0}
 #tvVideo{max-width:100%;max-height:100%;object-fit:contain;display:none}
 #tvIframe{width:100%;height:100%;border:none;display:none}
-.tv-info{position:absolute;bottom:0;left:0;right:0;padding:2rem 3rem;background:linear-gradient(to top,rgba(0,0,0,0.85) 0%,transparent 100%);display:flex;align-items:flex-end;justify-content:space-between;transition:opacity 0.8s}
+.tv-info{position:absolute;bottom:0;left:0;right:0;padding:2rem 3rem;background:linear-gradient(to top,rgba(0,0,0,0.85) 0%,transparent 100%);display:flex;align-items:flex-end;justify-content:space-between}
 .tv-client{font-family:'Barlow Condensed',sans-serif;font-size:2rem;font-weight:800;color:#fff;text-transform:uppercase;letter-spacing:0.04em}
 .tv-meta{font-size:0.9rem;color:rgba(255,255,255,0.5);letter-spacing:0.08em;margin-top:4px}
 .tv-size{font-family:'Barlow Condensed',sans-serif;font-size:1rem;font-weight:700;letter-spacing:0.2em;text-transform:uppercase;background:rgba(34,197,94,0.85);color:#051a0a;padding:6px 16px}
-.tv-logo{position:absolute;top:1.5rem;right:2rem;opacity:0.4;transition:opacity 0.8s}
+.tv-logo{position:absolute;top:1.5rem;right:2rem;opacity:0.4}
 .tv-progress{position:absolute;bottom:0;left:0;height:2px;background:var(--green-accent);transition:width linear}
-.tv-controls{position:absolute;top:1rem;left:1rem;display:flex;gap:8px;transition:opacity 0.5s}
-#tvModal:hover .tv-controls{opacity:1}
-#tvModal.hud-hidden .tv-info{opacity:0;pointer-events:none}
-#tvModal.hud-hidden .tv-logo{opacity:0}
-#tvModal.hud-hidden .tv-controls{opacity:0;pointer-events:none}
-#tvModal:hover.hud-hidden .tv-controls{opacity:1;pointer-events:auto}
+.tv-controls{position:absolute;top:1rem;left:1rem;display:flex;gap:8px;opacity:0;transition:opacity 0.4s;pointer-events:none}
+#tvModal:hover .tv-controls{opacity:1;pointer-events:auto}
 .btn-tv-ctrl{background:rgba(0,0,0,0.6);border:1px solid rgba(255,255,255,0.15);color:rgba(255,255,255,0.7);font-family:'Barlow Condensed',sans-serif;font-size:0.72rem;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;padding:7px 14px;cursor:pointer;transition:all 0.2s;backdrop-filter:blur(4px)}
 .btn-tv-ctrl:hover{border-color:var(--green-accent);color:var(--green-accent)}
 .btn-zoom:hover{border-color:var(--green-accent);color:var(--green-accent)}
@@ -430,7 +426,16 @@ header{background:var(--black2);padding:0;position:sticky;top:0;z-index:100;bord
   <div class="slideshow-body">
     <button class="btn-slide-nav btn-slide-prev" onclick="navSlide(-1)">←</button>
     <img id="slideImg" src="" alt="" onclick="openZoom()">
-    <video id="slideVideo" controls playsinline style="display:none;max-height:100%;max-width:100%;object-fit:contain"></video>
+    <video id="slideVideo" playsinline style="display:none;max-height:100%;max-width:100%;object-fit:contain;cursor:pointer" onclick="videoPlayPause()"></video>
+    <div id="videoBottomBar" style="display:none;position:absolute;bottom:1.5rem;left:50%;transform:translateX(-50%);display:none;align-items:center;gap:10px;background:rgba(0,0,0,0.55);padding:6px 14px;backdrop-filter:blur(6px)">
+      <button onclick="videoPlayPause()" id="btnVidPlay" style="background:transparent;border:none;color:white;cursor:pointer;font-size:1rem;display:flex;align-items:center;padding:0">▶</button>
+      <div id="vidProgBar" onclick="videoSeek(event)" style="width:120px;height:3px;background:rgba(255,255,255,0.2);cursor:pointer;position:relative;flex-shrink:0">
+        <div id="vidProgFill" style="height:100%;background:var(--green-accent);width:0%;pointer-events:none"></div>
+      </div>
+      <span id="vidTime" style="font-family:'Barlow Condensed',sans-serif;font-size:0.68rem;color:rgba(255,255,255,0.5);letter-spacing:0.04em;white-space:nowrap">0:00</span>
+      <button id="btnUnmute" onclick="unmuteVideo()" style="display:none;background:transparent;border:1px solid rgba(34,197,94,0.5);color:var(--green-accent);font-family:'Barlow Condensed',sans-serif;font-size:0.65rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;padding:3px 10px;cursor:pointer">🔊 Som</button>
+      <span id="videoMutedBadge" style="display:none;font-family:'Barlow Condensed',sans-serif;font-size:0.65rem;color:rgba(255,255,255,0.3);letter-spacing:0.1em">🔇</span>
+    </div>
     <iframe id="slideYoutube" style="display:none;width:100%;height:100%;border:none" allowfullscreen allow="autoplay; encrypted-media"></iframe>
     <div id="slideEmpty" class="slide-empty">
       <div class="slide-empty-icon">📷</div>
@@ -858,12 +863,15 @@ function renderSlide() {
 
   // pause any playing video/youtube when switching
   if (!video.paused) { video.pause(); }
+  video.onvolumechange = null;
   const ytFrame = document.getElementById('slideYoutube');
   if (ytFrame.src) { ytFrame.src = ''; }
   const btnUnmute = document.getElementById('btnUnmute');
   const mutedBadge = document.getElementById('videoMutedBadge');
+  const videoBar = document.getElementById('videoBottomBar');
   if (btnUnmute) btnUnmute.style.display = 'none';
   if (mutedBadge) mutedBadge.style.display = 'none';
+  if (videoBar) videoBar.style.display = 'none';
 
   // hide all
   img.style.display = 'none';
@@ -878,13 +886,20 @@ function renderSlide() {
   } else if (isVideo) {
     video.style.display = 'block';
     video.src = current.url;
-    video.muted = !!current.muted; // respect admin setting
+    video.muted = !!current.muted;
     video.load();
-    video.play().catch(() => {
-      // if autoplay blocked, try muted
-      video.muted = true;
-      video.play().catch(() => {});
-    });
+    video.play().catch(() => { video.muted = true; video.play().catch(()=>{}); });
+
+    // enforce mute — prevent visitor from unmuting
+    if (current.muted) {
+      video.onvolumechange = () => { if (!video.muted) video.muted = true; };
+    } else {
+      video.onvolumechange = null;
+    }
+
+    // show bottom bar
+    const bar = document.getElementById('videoBottomBar');
+    bar.style.display = 'flex';
 
     const btnUnmute = document.getElementById('btnUnmute');
     const mutedBadge = document.getElementById('videoMutedBadge');
@@ -892,10 +907,18 @@ function renderSlide() {
       if (btnUnmute) btnUnmute.style.display = 'none';
       if (mutedBadge) mutedBadge.style.display = 'block';
     } else {
-      // has audio — show unmute button only if browser forced mute
       if (btnUnmute) btnUnmute.style.display = video.muted ? 'block' : 'none';
       if (mutedBadge) mutedBadge.style.display = 'none';
     }
+
+    video.ontimeupdate = () => {
+      if (!video.duration) return;
+      document.getElementById('vidProgFill').style.width = (video.currentTime/video.duration*100)+'%';
+      const s = Math.floor(video.currentTime);
+      document.getElementById('vidTime').textContent = `${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`;
+    };
+    video.onplay = () => { document.getElementById('btnVidPlay').textContent = '⏸'; };
+    video.onpause = () => { document.getElementById('btnVidPlay').textContent = '▶'; };
   } else {
     btnZoom && (btnZoom.style.display = 'flex');
     img.style.display = 'block';
@@ -1016,8 +1039,21 @@ function navSlide(dir) {
 function unmuteVideo() {
   const video = document.getElementById('slideVideo');
   video.muted = false;
-  const btnUnmute = document.getElementById('btnUnmute');
-  if (btnUnmute) btnUnmute.style.display = 'none';
+  const btn = document.getElementById('btnUnmute');
+  if (btn) btn.style.display = 'none';
+}
+
+function videoPlayPause() {
+  const v = document.getElementById('slideVideo');
+  if (v.paused) v.play(); else v.pause();
+}
+
+function videoSeek(e) {
+  const v = document.getElementById('slideVideo');
+  if (!v.duration) return;
+  const bar = document.getElementById('vidProgBar');
+  const rect = bar.getBoundingClientRect();
+  v.currentTime = ((e.clientX - rect.left) / rect.width) * v.duration;
 }
 
 function closeSlideshow() {
@@ -1377,14 +1413,6 @@ function requestFullscreen() {
   else if (el.msRequestFullscreen) el.msRequestFullscreen();
 }
 
-let tvHudTimer = null;
-function tvShowHud() {
-  const modal = document.getElementById('tvModal');
-  modal.classList.remove('hud-hidden');
-  clearTimeout(tvHudTimer);
-  tvHudTimer = setTimeout(() => modal.classList.add('hud-hidden'), 4000);
-}
-
 function openTVMode() {
   tvQueue = buildTVQueue();
   if (!tvQueue.length) { showToast('Nenhuma mídia para exibir'); return; }
@@ -1392,23 +1420,15 @@ function openTVMode() {
   tvPaused = false;
   const modal = document.getElementById('tvModal');
   modal.classList.add('open');
-  modal.classList.remove('hud-hidden');
   document.body.style.overflow = 'hidden';
-  // show HUD on mouse move
-  modal.addEventListener('mousemove', tvShowHud);
-  modal.addEventListener('touchstart', tvShowHud);
   tvShowCurrent();
-  tvShowHud();
   setTimeout(() => requestFullscreen(), 300);
 }
 
 function closeTVMode() {
   clearTimeout(tvTimer);
-  clearTimeout(tvHudTimer);
   const modal = document.getElementById('tvModal');
-  modal.classList.remove('open', 'hud-hidden');
-  modal.removeEventListener('mousemove', tvShowHud);
-  modal.removeEventListener('touchstart', tvShowHud);
+  modal.classList.remove('open');
   document.body.style.overflow = '';
   const video = document.getElementById('tvVideo');
   video.pause(); video.src = '';
@@ -1425,7 +1445,6 @@ function closeTVMode() {
 function tvShowCurrent() {
   if (!tvQueue.length) return;
   const { photo, obra, label } = tvQueue[tvIdx];
-  tvShowHud();
   const img = document.getElementById('tvImg');
   const video = document.getElementById('tvVideo');
   const iframe = document.getElementById('tvIframe');
