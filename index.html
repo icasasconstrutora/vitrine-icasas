@@ -152,9 +152,9 @@ header{background:var(--black2);padding:0;position:sticky;top:0;z-index:100;bord
 
 /* SLIDESHOW */
 .slideshow-body{flex:1;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;padding:2rem 5rem}
-#slideImg{max-height:100%;max-width:100%;object-fit:contain;display:none;transition:opacity 0.22s}
+#slideImg{max-height:100%;max-width:100%;object-fit:contain;display:none;transition:opacity 0.22s;position:relative;z-index:1}
 #slideImg.fading{opacity:0}
-#slideVideo{max-height:100%;max-width:100%;object-fit:contain;display:none}
+#slideVideo{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;display:none;z-index:1;cursor:pointer}
 .slide-empty{display:flex;flex-direction:column;align-items:center;gap:0.75rem}
 .slide-empty-icon{font-size:3rem;opacity:0.08}
 .slide-empty-txt{font-family:'Barlow Condensed',sans-serif;font-size:0.8rem;font-weight:600;color:var(--text-dim);letter-spacing:0.12em;text-align:center;text-transform:uppercase;line-height:1.7}
@@ -426,7 +426,7 @@ header{background:var(--black2);padding:0;position:sticky;top:0;z-index:100;bord
   <div class="slideshow-body">
     <button class="btn-slide-nav btn-slide-prev" onclick="navSlide(-1)">←</button>
     <img id="slideImg" src="" alt="" onclick="openZoom()">
-    <video id="slideVideo" playsinline style="cursor:pointer" onclick="videoPlayPause()"></video>
+    <video id="slideVideo" playsinline onclick="videoPlayPause()"></video>
     <div id="videoBottomBar" style="display:none;position:absolute;bottom:1.5rem;left:50%;transform:translateX(-50%);align-items:center;gap:10px;background:rgba(0,0,0,0.6);padding:7px 14px;backdrop-filter:blur(8px)">
       <button onclick="videoPlayPause()" id="btnVidPlay" style="background:transparent;border:none;color:white;cursor:pointer;font-size:1rem;display:flex;align-items:center;padding:0;flex-shrink:0">▶</button>
       <div id="vidProgBar" onclick="videoSeek(event)" style="width:140px;height:3px;background:rgba(255,255,255,0.2);cursor:pointer;position:relative;flex-shrink:0">
