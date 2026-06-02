@@ -110,6 +110,7 @@ header{background:var(--black2);padding:0;position:sticky;top:0;z-index:100;bord
 /* ADMIN ACTIONS */
 .card-admin-actions{position:absolute;top:0.75rem;left:0.75rem;display:none;flex-direction:column;gap:4px}
 .card-admin-actions.visible{display:flex}
+.card-projeto-badge{position:absolute;top:0.875rem;left:0.875rem;font-family:'Barlow Condensed',sans-serif;font-size:0.6rem;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;padding:3px 10px;background:rgba(0,0,0,0.65);color:rgba(255,255,255,0.7);border:1px solid rgba(255,255,255,0.15);backdrop-filter:blur(4px)}
 .btn-card-edit,.btn-card-delete{background:rgba(8,12,8,0.85);border:1px solid rgba(255,255,255,0.1);color:rgba(255,255,255,0.6);font-family:'Barlow Condensed',sans-serif;font-size:0.65rem;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;padding:5px 10px;cursor:pointer;transition:all 0.2s;backdrop-filter:blur(4px)}
 .btn-card-edit:hover{border-color:var(--green-accent);color:var(--green-accent)}
 .btn-card-delete:hover{border-color:#E24B4A;color:#E24B4A}
@@ -592,6 +593,17 @@ header{background:var(--black2);padding:0;position:sticky;top:0;z-index:100;bord
         <option value="200m²">200m²</option>
       </select>
     </div>
+    <div class="form-field">
+      <label class="form-label">Foto do Projeto <span style="color:var(--text-dim);font-size:0.6rem;letter-spacing:0.08em">(opcional)</span></label>
+      <div id="projetoPreviewWrap" style="display:none;margin-bottom:8px;position:relative">
+        <img id="projetoPreview" src="" style="width:100%;height:120px;object-fit:cover;display:block">
+        <button onclick="removeProjetoPhoto()" style="position:absolute;top:4px;right:4px;background:rgba(0,0,0,0.7);border:none;color:white;width:24px;height:24px;cursor:pointer;font-size:0.75rem">✕</button>
+      </div>
+      <div id="projetoUploadArea" onclick="document.getElementById('projetoFileInput').click()" style="border:1px dashed rgba(255,255,255,0.1);padding:14px;text-align:center;cursor:pointer;transition:all 0.2s" onmouseover="this.style.borderColor='rgba(201,169,110,0.3)'" onmouseout="this.style.borderColor='rgba(255,255,255,0.1)'">
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:0.72rem;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;color:var(--text-dim)">+ Selecionar imagem do projeto</div>
+      </div>
+      <input type="file" id="projetoFileInput" accept="image/*" style="display:none" onchange="handleProjetoUpload(this.files)">
+    </div>
     <div class="form-actions">
       <button class="btn-form-cancel" onclick="closeObraModal()">Cancelar</button>
       <button class="btn-form-save" id="btnFormSave" onclick="saveObra()">Salvar obra</button>
@@ -788,7 +800,7 @@ function renderGrid() {
     list.forEach(obra => {
       const rooms = obra.rooms || [];
       const totalPhotos = rooms.reduce((a, r) => a + (r.photos || []).length, 0);
-      const coverUrl = rooms.length > 0 && rooms[0].photos && rooms[0].photos.length > 0 ? rooms[0].photos[0].url : null;
+      const coverUrl = rooms.length > 0 && rooms[0].photos && rooms[0].photos.length > 0 ? rooms[0].photos[0].url : (obra.projeto_url || null);
       const coverHtml = coverUrl
         ? `<img class="card-cover" src="${coverUrl}" alt="${obra.client_name}" loading="lazy">`
         : `<div class="card-no-photo"><div class="no-photo-icon">🏠</div><div class="no-photo-label">${totalPhotos} foto${totalPhotos !== 1 ? 's' : ''}</div></div>`;
@@ -804,6 +816,7 @@ function renderGrid() {
         </div>
         <div class="card-overlay"><div class="card-overlay-cta">Ver fotos</div></div>
         ${obra.size ? `<div class="size-tag">${obra.size}</div>` : ''}
+        ${obra.projeto_url ? `<div class="card-projeto-badge">🏗 Projeto</div>` : ''}
         <div class="card-admin-actions ${isAdmin ? 'visible' : ''}">
           <button class="btn-card-edit" onclick="event.stopPropagation();openEditObra('${obra.id}')">✎ Editar</button>
           <button class="btn-card-delete" onclick="event.stopPropagation();confirmDeleteObra('${obra.id}')">✕ Excluir</button>
@@ -1252,8 +1265,42 @@ function updateAdminUI() {
 // ══════════════════════════════
 // OBRA FORM
 // ══════════════════════════════
+let projetoPendingFile = null;
+let projetoRemoved = false;
+
+function resetProjetoField() {
+  projetoPendingFile = null;
+  projetoRemoved = false;
+  document.getElementById('projetoPreviewWrap').style.display = 'none';
+  document.getElementById('projetoPreview').src = '';
+  document.getElementById('projetoUploadArea').style.display = 'block';
+  document.getElementById('projetoFileInput').value = '';
+}
+
+function setProjetoPreview(url) {
+  document.getElementById('projetoPreview').src = url;
+  document.getElementById('projetoPreviewWrap').style.display = 'block';
+  document.getElementById('projetoUploadArea').style.display = 'none';
+}
+
+function handleProjetoUpload(files) {
+  if (!files.length) return;
+  projetoPendingFile = files[0];
+  projetoRemoved = false;
+  const reader = new FileReader();
+  reader.onload = e => setProjetoPreview(e.target.result);
+  reader.readAsDataURL(files[0]);
+}
+
+function removeProjetoPhoto() {
+  projetoRemoved = true;
+  projetoPendingFile = null;
+  resetProjetoField();
+}
+
 function openNewObra() {
   editingObraId = null;
+  resetProjetoField();
   document.getElementById('obraModalTitle').textContent = 'Nova obra';
   document.getElementById('obraModalSub').textContent = 'Preencha os dados';
   document.getElementById('fClient').value = '';
@@ -1261,9 +1308,12 @@ function openNewObra() {
   document.getElementById('fSize').value = '';
   document.getElementById('obraModal').classList.add('open');
 }
+
 function openEditObra(obraId) {
   const obra = obras.find(o => o.id === obraId); if (!obra) return;
   editingObraId = obraId;
+  resetProjetoField();
+  if (obra.projeto_url) setProjetoPreview(obra.projeto_url);
   document.getElementById('obraModalTitle').textContent = 'Editar obra';
   document.getElementById('obraModalSub').textContent = obra.client_name;
   document.getElementById('fClient').value = obra.client_name;
@@ -1271,6 +1321,7 @@ function openEditObra(obraId) {
   document.getElementById('fSize').value = obra.size || '';
   document.getElementById('obraModal').classList.add('open');
 }
+
 function closeObraModal() { document.getElementById('obraModal').classList.remove('open'); }
 
 async function saveObra() {
@@ -1284,6 +1335,29 @@ async function saveObra() {
       address: document.getElementById('fAddress').value.trim(),
       size: document.getElementById('fSize').value || null
     };
+
+    // handle projeto photo
+    if (projetoPendingFile) {
+      const compressed = await compressImage(projetoPendingFile);
+      const path = `projetos/${Date.now()}_${Math.random().toString(36).slice(2)}.jpg`;
+      const { error: upErr } = await db.storage.from(STORAGE_BUCKET).upload(path, compressed, { cacheControl: '3600', contentType: 'image/jpeg' });
+      if (!upErr) {
+        const { data: { publicUrl } } = db.storage.from(STORAGE_BUCKET).getPublicUrl(path);
+        payload.projeto_url = publicUrl;
+        payload.projeto_path = path;
+        // delete old projeto if editing
+        if (editingObraId) {
+          const existing = obras.find(o => o.id === editingObraId);
+          if (existing?.projeto_path) await db.storage.from(STORAGE_BUCKET).remove([existing.projeto_path]);
+        }
+      }
+    } else if (projetoRemoved) {
+      const existing = obras.find(o => o.id === editingObraId);
+      if (existing?.projeto_path) await db.storage.from(STORAGE_BUCKET).remove([existing.projeto_path]);
+      payload.projeto_url = null;
+      payload.projeto_path = null;
+    }
+
     if (editingObraId) {
       await updateObraRecord(editingObraId, payload);
       showToast('Obra atualizada');
