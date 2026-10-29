@@ -163,6 +163,11 @@ header{background:var(--black2);padding:0;position:sticky;top:0;z-index:100;bord
 .btn-slide-nav:hover{border-color:var(--green-accent);color:var(--green-accent)}
 .btn-slide-prev{left:1.5rem}
 .btn-slide-next{right:1.5rem}
+.slide-ambiente{position:absolute;top:1rem;left:1rem;z-index:6;display:flex;align-items:center;gap:6px;font-family:'Barlow Condensed',sans-serif;font-size:0.85rem;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:#fff;background:rgba(0,0,0,0.6);padding:6px 12px;border-radius:4px;pointer-events:none}
+.slide-ambiente:empty{display:none}
+.slide-ambiente.admin{pointer-events:auto;cursor:pointer;border:1px dashed rgba(255,255,255,0.5)}
+.slide-ambiente.admin.vazio{color:rgba(255,255,255,0.65)}
+.thumb-amb{position:absolute;left:0;right:0;bottom:0;font-size:0.5rem;line-height:1.3;text-align:center;color:#fff;background:rgba(0,0,0,0.65);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:1px 2px;pointer-events:none;text-transform:uppercase;letter-spacing:0.05em}
 .slide-counter{position:absolute;bottom:1.25rem;left:50%;transform:translateX(-50%);font-family:'Barlow Condensed',sans-serif;font-size:0.72rem;font-weight:600;color:var(--text-dim);letter-spacing:0.14em;text-transform:uppercase}
 .btn-tv{background:transparent;border:1px solid var(--border);color:var(--text-muted);font-size:0.85rem;width:32px;height:32px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all 0.2s}
 .btn-tv:hover{border-color:var(--green-accent);color:var(--green-accent)}
@@ -454,6 +459,7 @@ header{background:var(--black2);padding:0;position:sticky;top:0;z-index:100;bord
       <div class="slide-empty-txt">Nenhuma foto neste<br>cômodo ainda</div>
     </div>
     <button class="btn-slide-nav btn-slide-next" onclick="navSlide(1)">→</button>
+    <div class="slide-ambiente" id="slideAmbiente" onclick="editAmbiente()" title="Clique para editar o ambiente"></div>
     <div class="slide-counter" id="slideCounter"></div>
     <button class="btn-zoom" id="btnZoom" onclick="openZoom()" title="Tela cheia">⤢</button>
   </div>
@@ -629,7 +635,7 @@ header{background:var(--black2);padding:0;position:sticky;top:0;z-index:100;bord
 // CONFIG
 // ══════════════════════════════
 const SUPABASE_URL = 'https://mqdhavyaeujufhlqdlfg.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1xZGhhdnlhZXVqdWZobHFkbGZnIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3OTk0ODQ5NSwiZXhwIjoyMDk1NTI0NDk1fQ.8tjS6lQgaOzkp7QsvEEf46LJvCUiVecmpsl_tDW0kNM';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1xZGhhdnlhZXVqdWZobHFkbGZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk5NDg0OTUsImV4cCI6MjA5NTUyNDQ5NX0.bmlsVIXzQ1H-R4CEVZJzg_8TXygBsSQ57GOteBKqLHE';
 const STORAGE_BUCKET = 'obra-photos';
 
 // ══════════════════════════════
@@ -886,7 +892,7 @@ function renderSlide() {
   if (!photos.length) {
     img.style.display = 'none'; video.style.display = 'none';
     empty.style.display = 'flex'; thumbsBar.style.display = 'none';
-    counter.textContent = ''; return;
+    counter.textContent = ''; setAmbienteLabel(null); return;
   }
 
   empty.style.display = 'none';
@@ -972,6 +978,7 @@ function renderSlide() {
   }
 
   counter.textContent = `${currentSlide + 1} / ${photos.length}`;
+  setAmbienteLabel(current);
   thumbsBar.style.display = 'block';
   if (hint) hint.classList.toggle('visible', isAdmin && photos.length > 1);
 
@@ -996,6 +1003,7 @@ function renderSlide() {
 
     return `<div class="thumb-wrap ${i===currentSlide?'thumb-active':''}" data-id="${p.id}" onclick="goSlide(${i})">
       <img class="thumb-img ${i===currentSlide?'active':''}" src="${p.url}" alt="">
+      ${p.ambiente ? `<div class="thumb-amb">${escHtml(p.ambiente)}</div>` : ''}
       ${deleteBtn}
     </div>`;
   }).join('');
@@ -1016,6 +1024,37 @@ function renderSlide() {
 }
 
 function goSlide(i) { currentSlide = i; renderSlide(); }
+
+function escHtml(t) { return String(t || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+// Nome do ambiente por foto (coluna photos.ambiente)
+function setAmbienteLabel(photo) {
+  const el = document.getElementById('slideAmbiente');
+  if (!el) return;
+  const editavel = isAdmin && photo && !photo._isProjeto;
+  const nome = photo && photo.ambiente ? photo.ambiente : '';
+  el.classList.toggle('admin', !!editavel);
+  el.classList.toggle('vazio', !!editavel && !nome);
+  el.textContent = nome ? nome : (editavel ? '✎ Nomear ambiente' : '');
+  if (editavel && nome) el.textContent = '✎ ' + nome;
+}
+
+async function editAmbiente() {
+  if (!isAdmin || !currentObra) return;
+  const room = (currentObra.rooms || [])[currentRoomIdx];
+  const photo = room && (room.photos || [])[currentSlide];
+  if (!photo || photo._isProjeto) return;
+  const novo = prompt('Nome do ambiente desta foto (ex.: Sala, Cozinha, Suíte):', photo.ambiente || '');
+  if (novo === null) return;
+  const valor = novo.trim() || null;
+  try {
+    const { error } = await db.from('photos').update({ ambiente: valor }).eq('id', photo.id);
+    if (error) throw error;
+    photo.ambiente = valor;
+    showToast(valor ? 'Ambiente: ' + valor : 'Ambiente removido');
+    renderSlide();
+  } catch(e) { console.error(e); showToast('Erro ao salvar ambiente'); }
+}
 
 async function deletePhoto(photoId, storagePath, idx) {
   if (!confirm('Excluir esta foto/vídeo?')) return;
