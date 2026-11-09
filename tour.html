@@ -376,7 +376,7 @@ const teto=new THREE.Group(); teto.visible=false; scene.add(teto);
   CFG.forros.forEach(([x0,x1,z0,z1])=>{ const m=new THREE.Mesh(new THREE.PlaneGeometry(x1-x0,z1-z0),tm);
     m.rotation.x=Math.PI/2; m.position.set((x0+x1)/2-CX,PD-0.005,(z0+z1)/2-CZ); teto.add(m); }); }
 const LIM=[CFG.limites[0]-CX,CFG.limites[1]-CX,CFG.limites[2]-CZ,CFG.limites[3]-CZ];
-const EYE=1.60, RAD=0.12, GX0=-6, GZ0=-12, CELL=0.04, GW=300, GH=725;
+const EYE=1.60, RAD=0.12, CELL=0.04, GX0=LIM[0]-1, GZ0=LIM[2]-1, GW=Math.ceil((LIM[1]-LIM[0]+2)/CELL), GH=Math.ceil((LIM[3]-LIM[2]+2)/CELL);  // grade de colisão do tamanho do lote
 const grid=new Uint8Array(GW*GH);
 const SOLTO=['porta','esquadria','vidro','piso','externo','grama','concreto','topo','cromado'];  // portas/janelas não bloqueiam
 function buildGrid(){
