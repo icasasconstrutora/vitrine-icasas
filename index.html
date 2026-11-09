@@ -199,7 +199,16 @@ header{background:var(--black2);padding:0;position:sticky;top:0;z-index:100;bord
 /* FULLSCREEN ZOOM */
 #zoomOverlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.97);z-index:2000;align-items:center;justify-content:center;cursor:zoom-out}
 #zoomOverlay.open{display:flex}
-#zoomImg{max-width:95vw;max-height:95vh;object-fit:contain;user-select:none}
+#zoomImg{max-width:95vw;max-height:95vh;object-fit:contain;user-select:none;-webkit-user-drag:none;touch-action:none;transform-origin:0 0;will-change:transform;cursor:zoom-in}
+#zoomOverlay{touch-action:none}
+#zoomImg.zoomed{cursor:grab}
+.zoom-hint{position:fixed;bottom:1.25rem;left:1.25rem;font-family:'Barlow Condensed',sans-serif;font-size:0.68rem;letter-spacing:0.08em;color:rgba(255,255,255,0.35);pointer-events:none;z-index:2001}
+.btn-tour3d{border-color:rgba(242,140,40,0.55)!important;color:#f28c28!important}
+.btn-tour3d:hover{background:rgba(242,140,40,0.12)!important}
+#tourOverlay{display:none;position:fixed;inset:0;background:#141516;z-index:1500}
+#tourOverlay.open{display:block}
+#tourFrame{width:100%;height:100%;border:0;display:block}
+.btn-tour-close{position:fixed;top:14px;right:14px;z-index:1501;width:44px;height:44px;border-radius:50%;background:rgba(20,21,22,0.75);border:1px solid rgba(255,255,255,0.18);color:#fff;font-size:1.05rem;cursor:pointer;backdrop-filter:blur(8px)}
 .btn-zoom-close{position:fixed;top:1.25rem;right:1.25rem;background:rgba(0,0,0,0.6);border:1px solid rgba(255,255,255,0.15);color:rgba(255,255,255,0.6);width:38px;height:38px;cursor:pointer;font-size:1rem;display:flex;align-items:center;justify-content:center;z-index:2001;transition:all 0.2s}
 .btn-zoom-close:hover{border-color:var(--green-accent);color:var(--green-accent)}
 .btn-zoom-prev,.btn-zoom-next{position:fixed;top:50%;transform:translateY(-50%);background:rgba(0,0,0,0.5);border:1px solid rgba(255,255,255,0.1);color:rgba(255,255,255,0.5);width:46px;height:46px;cursor:pointer;font-size:1.2rem;display:flex;align-items:center;justify-content:center;z-index:2001;transition:all 0.2s}
@@ -423,6 +432,7 @@ header{background:var(--black2);padding:0;position:sticky;top:0;z-index:100;bord
       <div class="modal-meta-line" id="modalMetaLine"></div>
     </div>
     <div class="modal-right">
+      <button class="btn-add-photos btn-tour3d" id="btnTour3d" onclick="openTour()">🚶 Tour 3D</button>
       <button class="btn-add-photos" id="btnAddPhotos" onclick="triggerPhotoUpload()">+ Fotos / Vídeos</button>
       <button class="btn-add-photos" id="btnAddYt" style="display:none;border-color:rgba(255,80,80,0.4);color:#ff6b6b" onclick="promptYoutube()">+ YouTube</button>
       <button class="modal-close" onclick="closeSlideshow()">✕</button>
@@ -469,6 +479,12 @@ header{background:var(--black2);padding:0;position:sticky;top:0;z-index:100;bord
   </div>
 </div>
 
+<!-- TOUR 3D -->
+<div id="tourOverlay">
+  <button class="btn-tour-close" onclick="closeTour()" title="Fechar tour">✕</button>
+  <iframe id="tourFrame" title="Tour 3D" allow="fullscreen; xr-spatial-tracking" allowfullscreen></iframe>
+</div>
+
 <!-- ZOOM OVERLAY -->
 <div id="zoomOverlay" onclick="closeZoom()">
   <button class="btn-zoom-close" onclick="closeZoom()">✕</button>
@@ -476,6 +492,7 @@ header{background:var(--black2);padding:0;position:sticky;top:0;z-index:100;bord
   <img id="zoomImg" src="" alt="" onclick="event.stopPropagation()">
   <button class="btn-zoom-next" onclick="event.stopPropagation();zoomNav(1)">→</button>
   <div class="zoom-counter" id="zoomCounter"></div>
+  <div class="zoom-hint">Pinça, scroll ou duplo clique para ampliar · arraste para mover</div>
 </div>
 
 <!-- TV MODE -->
@@ -721,11 +738,11 @@ async function createRoom(obraId, name) {
 
 // Comprime a imagem antes de subir: max 2560px (nítido em TV 4K/2K e retina), JPEG 90%
 // Redução em etapas de 50% + suavização "high" para não serrilhar/borrar fotos grandes.
-function compressImage(file) {
+function compressImage(file, opts = {}) {
   return new Promise((resolve) => {
-    const MAX = 2560;
-    const QUALITY = 0.9;
-    const SKIP_BYTES = 2.5 * 1024 * 1024; // já leve e no tamanho certo? sobe o original
+    const MAX = opts.max || 2560;          // planta do projeto usa 5000 para dar zoom nítido
+    const QUALITY = opts.quality || 0.9;
+    const SKIP_BYTES = (opts.skipMB || 2.5) * 1024 * 1024; // já leve e no tamanho certo? sobe o original
     const reader = new FileReader();
     reader.onload = ev => {
       const img = new Image();
@@ -878,6 +895,7 @@ function openSlideshow(obraId) {
   document.getElementById('modalMetaLine').textContent = [currentObra.address, currentObra.size].filter(Boolean).join(' · ');
   document.getElementById('btnAddPhotos').classList.toggle('visible', isAdmin);
   document.getElementById('btnAddYt').classList.toggle('visible', isAdmin);
+  document.getElementById('btnTour3d').classList.toggle('visible', !!currentObra.tour_slug);
   renderRoomTabs();
   const rooms = currentObra.rooms || [];
   if (rooms.length > 0) selectRoom(0); else renderSlide();
@@ -1205,12 +1223,81 @@ function openZoom() {
   if (!photos.length) return;
   const current = photos[currentSlide];
   if (current.type === 'video') return; // vídeo tem player próprio
+  zoomReset();
   document.getElementById('zoomImg').src = current.url;
   document.getElementById('zoomCounter').textContent = `${currentSlide + 1} / ${photos.length}`;
   document.getElementById('zoomOverlay').classList.add('open');
 }
 
-function closeZoom() { document.getElementById('zoomOverlay').classList.remove('open'); }
+function closeZoom() { if (zoomMoved) { zoomMoved = false; return; } zoomReset(); document.getElementById('zoomOverlay').classList.remove('open'); }
+
+// Zoom de verdade na imagem (pinça no celular, scroll/duplo clique no PC, arrastar para mover)
+let zS = 1, zX = 0, zY = 0, zoomMoved = false;
+const zPtrs = new Map(); let zStart = null;
+function zoomApply() {
+  const img = document.getElementById('zoomImg');
+  img.style.transform = `translate(${zX}px,${zY}px) scale(${zS})`;
+  img.classList.toggle('zoomed', zS > 1.01);
+}
+function zoomReset() { zS = 1; zX = 0; zY = 0; zPtrs.clear(); zStart = null; zoomApply(); }
+function zoomAt(cx, cy, ns) {   // amplia mantendo o ponto (cx,cy) da tela parado
+  const img = document.getElementById('zoomImg');
+  ns = Math.min(8, Math.max(1, ns));
+  const r = img.getBoundingClientRect();           // já inclui o transform atual
+  const ox = r.left - zX, oy = r.top - zY;         // posição sem transform
+  const px = (cx - r.left) / zS, py = (cy - r.top) / zS;
+  zX = cx - ox - px * ns; zY = cy - oy - py * ns; zS = ns;
+  if (zS === 1) { zX = 0; zY = 0; }
+  zoomApply();
+}
+(function initZoomGestures() {
+  const ov = document.getElementById('zoomOverlay'), img = document.getElementById('zoomImg');
+  ov.addEventListener('wheel', e => { e.preventDefault(); zoomAt(e.clientX, e.clientY, zS * Math.exp(-Math.max(-120, Math.min(120, e.deltaY)) * 0.0015)); }, { passive: false });
+  img.addEventListener('dblclick', e => { e.stopPropagation(); zoomAt(e.clientX, e.clientY, zS > 1.01 ? 1 : 3); });
+  ov.addEventListener('pointerdown', e => {
+    if (e.target.closest('button')) return;
+    zPtrs.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    try { ov.setPointerCapture(e.pointerId); } catch (_) {}
+    const p = [...zPtrs.values()];
+    zStart = p.length === 2
+      ? { d: Math.hypot(p[0].x - p[1].x, p[0].y - p[1].y), s: zS }
+      : { x: e.clientX, y: e.clientY, zx: zX, zy: zY };
+  });
+  ov.addEventListener('pointermove', e => {
+    if (!zPtrs.has(e.pointerId) || !zStart) return;
+    zPtrs.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    const p = [...zPtrs.values()];
+    if (p.length === 2 && zStart.d) {
+      const d = Math.hypot(p[0].x - p[1].x, p[0].y - p[1].y);
+      zoomAt((p[0].x + p[1].x) / 2, (p[0].y + p[1].y) / 2, zStart.s * d / zStart.d); zoomMoved = true;
+    } else if (p.length === 1 && zS > 1.01 && zStart.x !== undefined) {
+      const dx = e.clientX - zStart.x, dy = e.clientY - zStart.y;
+      if (Math.abs(dx) + Math.abs(dy) > 4) zoomMoved = true;
+      zX = zStart.zx + dx; zY = zStart.zy + dy; zoomApply();
+    }
+  });
+  const up = e => {
+    zPtrs.delete(e.pointerId);
+    const p = [...zPtrs.values()];
+    zStart = p.length === 1 ? { x: p[0].x, y: p[0].y, zx: zX, zy: zY } : null;
+    setTimeout(() => { zoomMoved = false; }, 60);   // o clique que vem logo após um arrasto não fecha
+  };
+  ov.addEventListener('pointerup', up);
+  ov.addEventListener('pointercancel', up);
+})();
+
+// ══════════════════════════════
+// TOUR 3D (tour.html?casa=<tour_slug>)
+// ══════════════════════════════
+function openTour() {
+  if (!currentObra?.tour_slug) return;
+  document.getElementById('tourFrame').src = 'tour.html?casa=' + encodeURIComponent(currentObra.tour_slug);
+  document.getElementById('tourOverlay').classList.add('open');
+}
+function closeTour() {
+  document.getElementById('tourOverlay').classList.remove('open');
+  document.getElementById('tourFrame').src = 'about:blank';
+}
 
 function zoomNav(dir) {
   const rooms = currentObra?.rooms || [];
@@ -1218,6 +1305,7 @@ function zoomNav(dir) {
   const photos = room ? (room.photos || []) : [];
   if (!photos.length) return;
   currentSlide = (currentSlide + dir + photos.length) % photos.length;
+  zoomReset();
   document.getElementById('zoomImg').src = photos[currentSlide].url;
   document.getElementById('zoomCounter').textContent = `${currentSlide + 1} / ${photos.length}`;
   renderSlide();
@@ -1411,7 +1499,7 @@ async function saveObra() {
 
     // handle projeto photo
     if (projetoPendingFile) {
-      const compressed = await compressImage(projetoPendingFile);
+      const compressed = await compressImage(projetoPendingFile, { max: 5000, quality: 0.92, skipMB: 6 });
       const path = `projetos/${Date.now()}_${Math.random().toString(36).slice(2)}.jpg`;
       const { error: upErr } = await db.storage.from(STORAGE_BUCKET).upload(path, compressed, { cacheControl: '3600', contentType: 'image/jpeg' });
       if (!upErr) {
@@ -1732,6 +1820,10 @@ document.addEventListener('keydown', e => {
     if (e.key === 'Escape') closeTVMode();
     if (e.key === 'ArrowRight' || e.key === ' ') tvNext();
     if (e.key === 'p' || e.key === 'P') tvPause();
+    return;
+  }
+  if (document.getElementById('tourOverlay').classList.contains('open')) {
+    if (e.key === 'Escape') closeTour();
     return;
   }
   if (document.getElementById('zoomOverlay').classList.contains('open')) {
