@@ -87,7 +87,7 @@ header{background:var(--black2);padding:0;position:sticky;top:0;z-index:100;bord
 .obras-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:2px;background:var(--border)}
 
 /* CARD */
-.obra-card{background:var(--black3);cursor:pointer;position:relative;overflow:hidden;aspect-ratio:4/3;transition:all 0.3s}
+.obra-card{background:var(--black3);cursor:pointer;position:relative;overflow:hidden;aspect-ratio:4/3;content-visibility:auto;contain-intrinsic-size:auto 300px}
 .obra-card:hover .card-cover{transform:scale(1.05)}
 .obra-card:hover .card-overlay{opacity:1}
 .card-cover{width:100%;height:100%;object-fit:cover;display:block;transition:transform 0.5s cubic-bezier(0.25,0.46,0.45,0.94)}
@@ -105,13 +105,13 @@ header{background:var(--black2);padding:0;position:sticky;top:0;z-index:100;bord
 .obra-card:hover .card-overlay-cta{background:var(--green-accent);color:var(--black)}
 
 /* SIZE TAG */
-.size-tag{position:absolute;top:0.875rem;right:0.875rem;font-family:'Barlow Condensed',sans-serif;font-size:0.72rem;font-weight:700;letter-spacing:0.16em;text-transform:uppercase;padding:4px 12px;background:rgba(34,197,94,0.85);color:#051a0a;border:1px solid rgba(34,197,94,0.9);box-shadow:0 2px 8px rgba(0,0,0,0.6),0 1px 3px rgba(0,0,0,0.8);backdrop-filter:blur(4px)}
+.size-tag{position:absolute;top:0.875rem;right:0.875rem;font-family:'Barlow Condensed',sans-serif;font-size:0.72rem;font-weight:700;letter-spacing:0.16em;text-transform:uppercase;padding:4px 12px;background:rgba(34,197,94,0.85);color:#051a0a;border:1px solid rgba(34,197,94,0.9);box-shadow:0 2px 8px rgba(0,0,0,0.6),0 1px 3px rgba(0,0,0,0.8)}
 
 /* ADMIN ACTIONS */
 .card-admin-actions{position:absolute;top:0.75rem;left:0.75rem;display:none;flex-direction:column;gap:4px}
 .card-admin-actions.visible{display:flex}
-.card-projeto-badge{position:absolute;top:0.875rem;left:0.875rem;font-family:'Barlow Condensed',sans-serif;font-size:0.6rem;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;padding:3px 10px;background:rgba(0,0,0,0.65);color:rgba(255,255,255,0.7);border:1px solid rgba(255,255,255,0.15);backdrop-filter:blur(4px)}
-.btn-card-edit,.btn-card-delete{background:rgba(8,12,8,0.85);border:1px solid rgba(255,255,255,0.1);color:rgba(255,255,255,0.6);font-family:'Barlow Condensed',sans-serif;font-size:0.65rem;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;padding:5px 10px;cursor:pointer;transition:all 0.2s;backdrop-filter:blur(4px)}
+.card-projeto-badge{position:absolute;top:0.875rem;left:0.875rem;font-family:'Barlow Condensed',sans-serif;font-size:0.6rem;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;padding:3px 10px;background:rgba(0,0,0,0.65);color:rgba(255,255,255,0.7);border:1px solid rgba(255,255,255,0.15)}
+.btn-card-edit,.btn-card-delete{background:rgba(8,12,8,0.85);border:1px solid rgba(255,255,255,0.1);color:rgba(255,255,255,0.6);font-family:'Barlow Condensed',sans-serif;font-size:0.65rem;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;padding:5px 10px;cursor:pointer;transition:all 0.2s}
 .btn-card-edit:hover{border-color:var(--green-accent);color:var(--green-accent)}
 .btn-card-delete:hover{border-color:#E24B4A;color:#E24B4A}
 
@@ -846,9 +846,10 @@ function renderGrid() {
     list.forEach(obra => {
       const rooms = obra.rooms || [];
       const totalPhotos = rooms.reduce((a, r) => a + (r.photos || []).length, 0);
-      const coverUrl = rooms.length > 0 && rooms[0].photos && rooms[0].photos.length > 0 ? rooms[0].photos[0].url : (obra.projeto_url || null);
+      const firstPhoto = rooms.flatMap(r => r.photos || []).find(p => p.type !== 'video' && p.type !== 'youtube' && !p._isProjeto && !isVideoUrl(p.url));
+      const coverUrl = firstPhoto ? firstPhoto.url : (obra.projeto_url || null);
       const coverHtml = coverUrl
-        ? `<img class="card-cover" src="${coverUrl}" alt="${obra.client_name}" loading="lazy">`
+        ? `<img class="card-cover" src="${imgSize(coverUrl, 720)}" alt="${obra.client_name}" loading="lazy" decoding="async">`
         : `<div class="card-no-photo"><div class="no-photo-icon">🏠</div><div class="no-photo-label">${totalPhotos} foto${totalPhotos !== 1 ? 's' : ''}</div></div>`;
 
       html += `<div class="obra-card" onclick="openSlideshow('${obra.id}')">
@@ -1015,7 +1016,10 @@ function renderSlide() {
     btnZoom && (btnZoom.style.display = 'flex');
     img.style.display = 'block';
     img.classList.add('fading');
-    setTimeout(() => { img.src = current.url; img.classList.remove('fading'); }, 180);
+    const alvo = plantaMedia(current.url);
+    img.onerror = () => { if (img.src !== current.url) img.src = current.url; };
+    setTimeout(() => { img.src = alvo; img.classList.remove('fading'); }, 180);
+    [photos[currentSlide + 1], photos[currentSlide - 1]].forEach(p => { if (p && p.type !== 'video' && p.type !== 'youtube') { const pre = new Image(); pre.decoding = 'async'; pre.src = p.url; } });
   }
 
   counter.textContent = `${currentSlide + 1} / ${photos.length}`;
@@ -1024,6 +1028,18 @@ function renderSlide() {
   if (hint) hint.classList.toggle('visible', isAdmin && photos.length > 1);
 
   const scroll = document.getElementById('thumbsScroll');
+  const chave = currentObra.id + '|' + currentRoomIdx + '|' + photos.map(p => p.id + (p.muted ? 'm' : '') + (p.ambiente || '')).join(',') + '|' + isAdmin;
+  if (scroll._chave === chave) {
+    scroll.querySelectorAll('.thumb-wrap').forEach((w, i) => {
+      const on = i === currentSlide; w.classList.toggle('thumb-active', on);
+      const im = w.querySelector('.thumb-img'); if (im) im.classList.toggle('active', on);
+      if (w.style.border) w.style.borderColor = on ? 'var(--green-accent)' : 'transparent';
+    });
+    const ativo = scroll.children[currentSlide]; if (ativo) ativo.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+    return;
+  }
+  scroll._chave = chave;
+  if (scroll._sortable) { scroll._sortable.destroy(); scroll._sortable = null; }
   scroll.innerHTML = photos.map((p, i) => {
     const isVid = p.type === 'video';
     const isYt = p.type === 'youtube';
@@ -1043,7 +1059,7 @@ function renderSlide() {
     </div>`;
 
     return `<div class="thumb-wrap ${i===currentSlide?'thumb-active':''}" data-id="${p.id}" onclick="goSlide(${i})">
-      <img class="thumb-img ${i===currentSlide?'active':''}" src="${p.url}" alt="">
+      <img class="thumb-img ${i===currentSlide?'active':''}" src="${imgSize(p.url, 160, 65)}" alt="" decoding="async" onerror="if(this.src!=='${p.url}')this.src='${p.url}'">
       ${p.ambiente ? `<div class="thumb-amb">${escHtml(p.ambiente)}</div>` : ''}
       ${deleteBtn}
     </div>`;
@@ -1051,7 +1067,7 @@ function renderSlide() {
 
   // init Sortable for admin
   if (isAdmin && photos.length > 1 && window.Sortable) {
-    Sortable.create(scroll, {
+    scroll._sortable = Sortable.create(scroll, {
       animation: 150,
       ghostClass: 'sortable-ghost',
       chosenClass: 'sortable-chosen',
@@ -1065,6 +1081,16 @@ function renderSlide() {
 }
 
 function goSlide(i) { currentSlide = i; renderSlide(); }
+
+// Versão redimensionada da foto pelo Supabase (só fotos do bucket; vídeos e links externos ficam como estão)
+function imgSize(url, w, q = 72) {
+  if (plantaMedia(url) !== url) return plantaMedia(url);
+  if (!url || !/\/storage\/v1\/object\/public\//.test(url) || !/\.(jpe?g|png|webp)(\?|$)/i.test(url)) return url;
+  return url.replace('/storage/v1/object/public/', '/storage/v1/render/image/public/') + `?width=${w}&quality=${q}&resize=contain`;
+}
+// Plantas do tour (/plantas/x.jpg, 5000px): a vitrine mostra a cópia de 1800px em /plantas/m/x.jpg; o zoom usa a original
+function plantaMedia(url) { return /\/plantas\/[^/]+\.jpg(\?|$)/i.test(url || '') ? url.replace(/\/plantas\/([^/]+\.jpg)/i, '/plantas/m/$1') : url; }
+function isVideoUrl(u) { return /\.(mp4|mov|webm|m4v)(\?|$)/i.test(u || ''); }
 
 function escHtml(t) { return String(t || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
