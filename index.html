@@ -877,19 +877,21 @@ function renderGrid() {
 // ══════════════════════════════
 // SLIDESHOW
 // ══════════════════════════════
+// planta do projeto entra como ÚLTIMO item do último ambiente (virtual, não é salva): o cliente vê as fotos primeiro
+function injetaPlanta() {
+  if (!currentObra) return;
+  const rooms = currentObra.rooms || [];
+  rooms.forEach(r => { r.photos = (r.photos || []).filter(p => !p._isProjeto); });
+  if (currentObra.projeto_url && rooms.length > 0) {
+    rooms[rooms.length - 1].photos.push({ id: '_projeto', url: currentObra.projeto_url, type: 'photo', _isProjeto: true });
+  }
+}
+
 function openSlideshow(obraId) {
   currentObra = obras.find(o => o.id === obraId);
   if (!currentObra) return;
 
-  // inject projeto photo as first item in first room (virtual, not saved)
-  if (currentObra.projeto_url) {
-    const rooms = currentObra.rooms || [];
-    if (rooms.length > 0) {
-      // remove any previously injected projeto photo
-      rooms[0].photos = (rooms[0].photos || []).filter(p => !p._isProjeto);
-      rooms[0].photos.unshift({ id: '_projeto', url: currentObra.projeto_url, type: 'photo', _isProjeto: true });
-    }
-  }
+  injetaPlanta();
 
   currentRoomIdx = 0; currentSlide = 0;
   document.getElementById('modalClientName').textContent = currentObra.client_name;
@@ -1133,7 +1135,7 @@ async function deletePhoto(photoId, storagePath, idx) {
     if (error) throw error;
     showToast('Excluído');
     await loadObras();
-    currentObra = obras.find(o => o.id === currentObra.id);
+    currentObra = obras.find(o => o.id === currentObra.id); injetaPlanta();
     currentSlide = Math.max(0, idx - 1);
     renderRoomTabs(); renderSlide(); renderGrid();
   } catch(e) { console.error(e); showToast('Erro ao excluir'); }
@@ -1151,7 +1153,7 @@ async function togglePhotoMute(photoId, idx) {
     if (error) throw error;
     showToast(newMuted ? '🔇 Vídeo sem áudio' : '🔊 Vídeo com áudio');
     await loadObras();
-    currentObra = obras.find(o => o.id === currentObra.id);
+    currentObra = obras.find(o => o.id === currentObra.id); injetaPlanta();
     // if this is the current slide, apply mute immediately
     const video = document.getElementById('slideVideo');
     if (idx === currentSlide && video.src) video.muted = newMuted;
@@ -1168,13 +1170,15 @@ async function reorderPhotos(fromIdx, toIdx) {
   const [moved] = photos.splice(fromIdx, 1);
   photos.splice(toIdx, 0, moved);
   try {
-    for (let i = 0; i < photos.length; i++) {
-      await db.from('photos').update({ order: i }).eq('id', photos[i].id);
+    const reais = photos.filter(p => !p._isProjeto);   // a planta é virtual e fica sempre no fim
+    for (let i = 0; i < reais.length; i++) {
+      await db.from('photos').update({ order: i }).eq('id', reais[i].id);
     }
     showToast('Ordem salva');
   } catch(e) { console.error(e); showToast('Erro ao salvar ordem'); }
   await loadObras();
   currentObra = obras.find(o => o.id === currentObra.id);
+  injetaPlanta();
   currentSlide = toIdx;
   renderRoomTabs(); renderSlide();
 }
@@ -1367,7 +1371,7 @@ async function promptYoutube() {
     if (error) throw error;
     showToast('Vídeo do YouTube adicionado');
     await loadObras();
-    currentObra = obras.find(o => o.id === currentObra.id);
+    currentObra = obras.find(o => o.id === currentObra.id); injetaPlanta();
     renderRoomTabs(); renderSlide(); renderGrid();
   } catch(e) { console.error(e); showToast('Erro ao adicionar vídeo'); }
 }
@@ -1378,7 +1382,7 @@ async function ensureRoom(obraId) {
   const { data, error } = await db.from('rooms').insert([{ obra_id: obraId, name: 'Fotos', order: 0 }]).select().single();
   if (error) throw error;
   await loadObras();
-  currentObra = obras.find(o => o.id === obraId);
+  currentObra = obras.find(o => o.id === obraId); injetaPlanta();
   renderRoomTabs();
   return data;
 }
@@ -1406,7 +1410,7 @@ async function handlePhotoUpload(files) {
   document.getElementById('photoFileInput').value = '';
   showToast(`${done} foto${done !== 1 ? 's' : ''} enviada${done !== 1 ? 's' : ''}`);
   await loadObras();
-  currentObra = obras.find(o => o.id === currentObra.id);
+  currentObra = obras.find(o => o.id === currentObra.id); injetaPlanta();
   renderRoomTabs(); renderSlide(); renderGrid();
 }
 
